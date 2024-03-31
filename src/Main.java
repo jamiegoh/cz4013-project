@@ -1,4 +1,5 @@
 import org.jetbrains.annotations.NotNull;
+import utils.RequestType;
 
 import java.util.Scanner;
 
@@ -32,12 +33,23 @@ public class Main {
                 client.Client client = new client.Client(port);
                 Scanner scanner = new Scanner(System.in);
 
-                System.out.println("Enter STOP to stop the client");
-                System.out.println("Please enter file pathname, an offset in bytes, the number of bytes to be read separated by ,:");
-                String input = scanner.nextLine();
-                String response = client.sendData(input);
-//                String response = client.sendData("STOP");
-//                System.out.println("Response from server: " + response);
+
+                while(true) {
+                    System.out.println("Which service would you like to perform (READ, INSERT, LISTEN, STOP)?");
+                    String requestTypeStr = scanner.nextLine();
+                    RequestType requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
+
+                    if (requestType == RequestType.STOP) {
+                       client.makeRequest(requestType, "");
+                       break;
+                    }
+
+                    System.out.println("Please enter file pathname, an offset in bytes, the number of bytes to be read separated by ,:");
+                    String input = scanner.nextLine();
+                    String response = client.makeRequest(requestType, input);
+//
+                }
+
                 client.close();
             } catch (Exception e) {
                 e.printStackTrace();
