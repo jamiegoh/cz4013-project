@@ -1,5 +1,6 @@
 package server;
 
+import utils.InsertRequest;
 import utils.ReadRequest;
 import utils.Request;
 import utils.RequestType;
@@ -52,33 +53,60 @@ public class Server {
 
             String responseString = "ACK";
 
+            String currentDir = Paths.get("").toAbsolutePath().toString();
             // switch on request type
             switch (receivedRequestType) {
                 case READ:
                     Map<String,Object> readRequestArgs = new ReadRequest(requestPacket).deserialize();
-                    String filename = (String) readRequestArgs.get("pathname");
-                    int offset = (int) readRequestArgs.get("offset");
+                    String readFileName = (String) readRequestArgs.get("pathname");
+                    int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
-                    byte[] data = new byte[readBytes];
-
-                    String currentDir = Paths.get("").toAbsolutePath().toString();
-                    String pathname = currentDir + "/src/data/" + filename; //won't work on Windows //todo: use path separator
+                    byte[] readBuf = new byte[readBytes];
+                    
+                    String readPathName = currentDir + "/src/data/" + readFileName; //won't work on Windows //todo: use path separator
 
                     System.out.println("Current directory: " + currentDir);
-                    System.out.println("Pathname: " + pathname);
+                    System.out.println("Pathname: " + readPathName);
 
-                    try (RandomAccessFile file = new RandomAccessFile(pathname, "r")) {
-                        file.seek(offset);
-                        file.read(data, 0, readBytes);
+                    try (RandomAccessFile file = new RandomAccessFile(readPathName, "r")) {
+                        file.seek(readOffset);
+                        file.read(readBuf, 0, readBytes);
                     } catch (IOException e) {
                         e.printStackTrace();
                         //TODO: respond w/ meaningful error message
                     }
-                    responseString = new String(data, StandardCharsets.UTF_8);
+                    responseString = new String(readBuf, StandardCharsets.UTF_8);
                     System.out.println("Server received read request: " + readRequestArgs);
                     break;
+
                 case INSERT:
-                    responseString = "ACK - INSERTED!";
+                    Map<String,Object> insertRequestArgs = new InsertRequest(requestPacket).deserialize();
+                    String filename = (String) insertRequestArgs.get("pathname");
+                    int writeOffset = (int) insertRequestArgs.get("offset");
+                    String data = (String) insertRequestArgs.get("data");
+
+                    String writePathName = currentDir + "/src/data/" + filename;
+
+
+                    try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
+                        long fileLength = file.length();
+                        if (writeOffset < fileLength) {
+                            byte[] temp = new byte[(int) (fileLength - writeOffset)];
+                            file.seek(writeOffset);
+                            file.readFully(temp);
+                            file.seek(writeOffset);
+                            file.write(data.getBytes(StandardCharsets.UTF_8));
+                            file.write(temp);
+                        } else {
+                            file.seek(fileLength);
+                            file.write(data.getBytes(StandardCharsets.UTF_8));
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    System.out.println("Server received insert request: " + insertRequestArgs);
+
                     break;
                 case LISTEN:
                     responseString = "ACK - LISTENING!";

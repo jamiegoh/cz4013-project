@@ -1,5 +1,6 @@
 package client;
 
+import utils.InsertRequest;
 import utils.ReadRequest;
 import utils.RequestType;
 import utils.StopRequest;
@@ -24,22 +25,27 @@ public class Client {
 
         String[] parts = input.split(",");
         String pathname = requestType == RequestType.STOP ? null : parts[0];
-        int offset = requestType == RequestType.STOP ? 0 : Integer.parseInt(parts[1]);
-        int readBytes = requestType == RequestType.STOP ? 0 : Integer.parseInt(parts[2]);
 
-        System.out.println("Client requesting: " + requestType + " " + pathname + " " + offset + " " + readBytes);
+//        System.out.println("Client requesting: " + requestType + " " + pathname + " " + offset + " " + readBytes);
         DatagramPacket requestPacket;
 
         switch (requestType) {
             case READ:
-                byte[] readRequestBuf = new ReadRequest(pathname, offset, readBytes).serialize();
+                //TODO: handle if offset exceeds file size
+                int readOffset =  Integer.parseInt(parts[1]);
+                int readBytes = Integer.parseInt(parts[2]);
+                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes).serialize();
                 requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, address, port);
                 break;
-//            case INSERT:
-//                //TODO: implement
-//                break;
+            case INSERT:
+                int writeOffset = Integer.parseInt(parts[1]);
+                String data = parts[2];
+                byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data).serialize();
+                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, address, port);
+                break;
 //            case LISTEN:
-//                //TODO: implement
+//
+////                //TODO: implement
 //                break;
             case STOP:
                 byte[] stopRequestBuf = new StopRequest().serialize();

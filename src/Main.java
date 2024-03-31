@@ -26,26 +26,36 @@ public class Main {
             }
         } else if (appType.equals("--client")) {
             System.out.println("Starting client...");
-            // todo: args[1] should be server address
-            // todo: args[2] should be server port
             String serverAddress = args[1];
             int port = Integer.parseInt(args[2]);
             try {
                 client.Client client = new client.Client(serverAddress,port);
                 Scanner scanner = new Scanner(System.in);
+                boolean running = true;
 
-
-                while(true) {
+                while(running) {
                     System.out.println("Which service would you like to perform (READ, INSERT, LISTEN, STOP)?");
                     String requestTypeStr = scanner.nextLine();
                     RequestType requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
 
-                    if (requestType == RequestType.STOP) {
-                       client.makeRequest(requestType, "");
-                       break;
+                    switch (requestType) {
+                        case READ:
+                            System.out.println("Enter the pathname, offset, and readBytes separated by commas:");
+                            break;
+                        case INSERT:
+                            System.out.println("Enter the pathname, offset, and data separated by commas:");
+                            break;
+                        case LISTEN:
+                            System.out.println("Enter the pathname and monitor interval separated by commas:");
+                            break;
+                        case STOP:
+                            client.makeRequest(requestType, "");
+                            running = false;
+                            continue;
+                        default:
+                            System.out.println("Invalid request type. Use READ, INSERT, LISTEN, or STOP");
+                            continue;
                     }
-
-                    System.out.println("Please enter file pathname, an offset in bytes, the number of bytes to be read separated by ,:");
                     String input = scanner.nextLine();
                     String response = client.makeRequest(requestType, input);
 
