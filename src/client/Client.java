@@ -18,17 +18,12 @@ public class Client {
     }
 
     public String sendData(String msg) throws IOException {
-        System.out.println("Client is sending data: " + msg);
+        System.out.println("Client sending data: " + msg);
         byte[] requestBuf = msg.getBytes(StandardCharsets.UTF_8);
 
-        DatagramPacket requestPacket
-                = new DatagramPacket(requestBuf, requestBuf.length, address, port);
+        DatagramPacket requestPacket = new DatagramPacket(requestBuf, requestBuf.length, address, port);
 
-        System.out.println("buf length" + requestBuf.length);
-
-        System.out.println("Client is sending packet...");
         socket.send(requestPacket);
-        System.out.println("Client sent packet");
 
         byte[] responseBuf = new byte[256];
 
@@ -36,7 +31,15 @@ public class Client {
         socket.receive(responsePacket);
         String received = new String(
                 responsePacket.getData(), 0, responsePacket.getLength());
-        System.out.println("Length of response Packet" + responsePacket.getLength());
+
+//        System.out.println("Client received data: " + received);
+
+        if (received.equals("ACK")) {
+            System.out.println("Client received ACK :)");
+        } else {
+            System.out.println("Client did not receive ACK :(");
+            // todo: resend based on resend policy (lecturer calls it at-most-once/at-least-once)
+        }
 
         return received;
     }

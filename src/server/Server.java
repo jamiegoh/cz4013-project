@@ -29,7 +29,6 @@ public class Server {
             System.out.println("Server is waiting for packet...");
             DatagramPacket requestPacket = new DatagramPacket(tempRequestBuf, tempRequestBuf.length);
             socket.receive(requestPacket);
-            System.out.println("buf length of received packet" + tempRequestBuf.length);
 
             // parse client request
             InetAddress address = requestPacket.getAddress();
@@ -51,9 +50,10 @@ public class Server {
             }
 
             // response packet
-            responseBuf = "RECEIVED WITH THANKS".getBytes();
+            responseBuf = "ACK".getBytes();
             DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
             socket.send(responsePacket);
+            System.out.println("Server sent ACK to client");
         }
 
         socket.close();
