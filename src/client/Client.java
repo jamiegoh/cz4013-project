@@ -1,5 +1,7 @@
 package client;
 
+import utils.ReadRequest;
+
 import java.awt.desktop.SystemSleepEvent;
 import java.io.IOException;
 import java.net.*;
@@ -17,18 +19,23 @@ public class Client {
         address = InetAddress.getByName("localhost");
     }
 
-    public String sendData(String msg) throws IOException {
-        System.out.println("Client sending data: " + msg);
-        byte[] requestBuf = msg.getBytes(StandardCharsets.UTF_8);
+    public String sendData(String input) throws IOException {
 
+        String[] parts = input.split(",");
+        String pathname = parts[0];
+        int offset = Integer.parseInt(parts[1]);
+        int readBytes = Integer.parseInt(parts[2]);
+
+        System.out.println("Client sending data: " + pathname + " " + offset + " " + readBytes);
+
+        byte[] requestBuf = new ReadRequest(pathname, offset, readBytes).serialize();
         DatagramPacket requestPacket = new DatagramPacket(requestBuf, requestBuf.length, address, port);
-
         socket.send(requestPacket);
 
         byte[] responseBuf = new byte[256];
-
         DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length);
         socket.receive(responsePacket);
+
         String received = new String(
                 responsePacket.getData(), 0, responsePacket.getLength());
 

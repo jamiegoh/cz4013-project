@@ -1,11 +1,14 @@
 package server;
 
+import utils.ReadRequest;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public class Server {
     private DatagramSocket socket;
@@ -39,9 +42,9 @@ public class Server {
             System.arraycopy(tempRequestBuf, 0, requestBuf, 0, requestPacket.getLength());
 
             requestPacket = new DatagramPacket(requestBuf, requestBuf.length, address, port);
-            String received = new String(requestPacket.getData(), 0, requestPacket.getLength(), StandardCharsets.UTF_8);
-            System.out.println("Server received data: " + received);
+            Map<String, Object> received = new ReadRequest(requestPacket).deserialize();
 
+            System.out.println("Server received data: " + received.get("pathname") + " " + received.get("offset") + " " + received.get("readBytes"));
 
             if (received.equals("STOP")) {
                 running = false;

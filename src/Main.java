@@ -1,5 +1,7 @@
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Scanner;
+
 public class Main {
     public static void main(@org.jetbrains.annotations.NotNull String @NotNull [] args) {
         System.out.println("Hello world!");
@@ -23,10 +25,17 @@ public class Main {
             }
         } else if (appType.equals("--client")) {
             System.out.println("Starting client...");
+            // todo: args[1] should be server address
+            // todo: args[2] should be server port
             int port = Integer.parseInt(args[1]);
             try {
                 client.Client client = new client.Client(port);
-                String response = client.sendData("hello");
+                Scanner scanner = new Scanner(System.in);
+
+                System.out.println("Enter STOP to stop the client");
+                System.out.println("Please enter file pathname, an offset in bytes, the number of bytes to be read separated by ,:");
+                String input = scanner.nextLine();
+                String response = client.sendData(input);
 //                String response = client.sendData("STOP");
 //                System.out.println("Response from server: " + response);
                 client.close();
