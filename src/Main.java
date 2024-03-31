@@ -26,7 +26,8 @@ public class Main {
             int port = Integer.parseInt(args[1]);
             try {
                 client.Client client = new client.Client(port);
-                String response = client.sendData("Hello from client!");
+//                String response = client.sendData("Hello from client!");
+                String response = client.sendData("STOP");
                 System.out.println("Response from server: " + response);
                 client.close();
             } catch (Exception e) {

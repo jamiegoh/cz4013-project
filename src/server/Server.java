@@ -5,11 +5,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 
 public class Server {
     private DatagramSocket socket;
     private boolean running;
-    private byte[] buf = new byte[256];
+    private byte[] tempRequestBuf = new byte[1024];
+    private byte[] responseBuf;
 
     private int port;
 
@@ -23,26 +25,39 @@ public class Server {
         System.out.println("Server is running on port " + port);
 
         while (running) {
+            // wait for client request
             System.out.println("Server is waiting for packet...");
-            DatagramPacket packet = new DatagramPacket(buf, buf.length);
-            socket.receive(packet);
-            System.out.println("Received packet" + packet);
+            DatagramPacket requestPacket = new DatagramPacket(tempRequestBuf, tempRequestBuf.length);
+            socket.receive(requestPacket);
+            System.out.println("buf length of received packet" + tempRequestBuf.length);
 
-            InetAddress address = packet.getAddress();
-            int port = packet.getPort();
-            packet = new DatagramPacket(buf, buf.length, address, port);
-            String received = new String(packet.getData(), 0, packet.getLength());
+            // parse client request
+            InetAddress address = requestPacket.getAddress();
+            int port = requestPacket.getPort();
 
-            if (received.equals("end")) {
+            // requestBuf is tempRequestBuf with null bytes removed
+            byte[] requestBuf = new byte[requestPacket.getLength()];
+            System.arraycopy(tempRequestBuf, 0, requestBuf, 0, requestPacket.getLength());
+
+            requestPacket = new DatagramPacket(requestBuf, requestBuf.length, address, port);
+            String received = new String(requestPacket.getData(), 0, requestPacket.getLength(), StandardCharsets.UTF_8);
+            System.out.println("Server received data: " + received);
+
+
+            if (received.equals("STOP")) {
                 running = false;
+                System.out.println("Server is stopping...");
                 continue;
             }
 
-            socket.send(packet);
+            // response packet
+            responseBuf = "RECEIVED WITH THANKS".getBytes();
+            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
+            socket.send(responsePacket);
         }
 
         socket.close();
-        System.out.println("Server stopped");
+        System.out.println("Server has stopped.");
 
     }
 
