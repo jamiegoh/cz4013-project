@@ -12,10 +12,11 @@ public class Client {
     private InetAddress address;
     private int port;
 
-    public Client(int port) throws UnknownHostException, SocketException {
+    public Client(String serverAddress, int port) throws UnknownHostException, SocketException {
+//        address = InetAddress.getByName("localhost");
+        this.address = InetAddress.getByName(serverAddress);
         this.port = port;
         socket = new DatagramSocket();
-        address = InetAddress.getByName("localhost");
     }
 
     public String makeRequest(RequestType requestType, String input) throws IOException {

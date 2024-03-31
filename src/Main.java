@@ -8,8 +8,8 @@ public class Main {
         System.out.println("Hello world!");
 
         // if args is not of length 2, print error message
-        if (args.length != 2) {
-            System.out.println("ERROR - Usage: java Main --server <port> or java Main --client <port>");
+        if (!(args.length == 2 || args.length == 3)) {
+            System.out.println("ERROR - Usage: java Main --server <port> or java Main --client <server-add> <port>");
             return;
         }
 
@@ -28,9 +28,10 @@ public class Main {
             System.out.println("Starting client...");
             // todo: args[1] should be server address
             // todo: args[2] should be server port
-            int port = Integer.parseInt(args[1]);
+            String serverAddress = args[1];
+            int port = Integer.parseInt(args[2]);
             try {
-                client.Client client = new client.Client(port);
+                client.Client client = new client.Client(serverAddress,port);
                 Scanner scanner = new Scanner(System.in);
 
 
@@ -47,7 +48,7 @@ public class Main {
                     System.out.println("Please enter file pathname, an offset in bytes, the number of bytes to be read separated by ,:");
                     String input = scanner.nextLine();
                     String response = client.makeRequest(requestType, input);
-//
+
                 }
 
                 client.close();
