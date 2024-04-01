@@ -1,9 +1,6 @@
 package server;
 
-import utils.InsertRequest;
-import utils.ReadRequest;
-import utils.Request;
-import utils.RequestType;
+import utils.*;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -57,12 +54,12 @@ public class Server {
             // switch on request type
             switch (receivedRequestType) {
                 case READ:
-                    Map<String,Object> readRequestArgs = new ReadRequest(requestPacket).deserialize();
+                    Map<String, Object> readRequestArgs = new ReadRequest(requestPacket).deserialize();
                     String readFileName = (String) readRequestArgs.get("pathname");
                     int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
                     byte[] readBuf = new byte[readBytes];
-                    
+
                     String readPathName = currentDir + "/src/data/" + readFileName; //won't work on Windows //todo: use path separator
 
                     System.out.println("Current directory: " + currentDir);
@@ -80,13 +77,13 @@ public class Server {
                     break;
 
                 case INSERT:
-                    Map<String,Object> insertRequestArgs = new InsertRequest(requestPacket).deserialize();
+                    //TODO: check if file exists
+                    Map<String, Object> insertRequestArgs = new InsertRequest(requestPacket).deserialize();
                     String filename = (String) insertRequestArgs.get("pathname");
                     int writeOffset = (int) insertRequestArgs.get("offset");
                     String data = (String) insertRequestArgs.get("data");
 
                     String writePathName = currentDir + "/src/data/" + filename;
-
 
                     try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
                         long fileLength = file.length();
@@ -107,12 +104,33 @@ public class Server {
 
                     System.out.println("Server received insert request: " + insertRequestArgs);
 
+                    responseBuf = responseString.getBytes();
+                    DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
+                    socket.send(responsePacket);
+
+
+                    Subscriber.notifySubscribers(filename);
+
                     break;
                 case LISTEN:
-                    responseString = "ACK - LISTENING!";
-                    //TODO: cannot kill connection
+                    System.out.println("Server received listen request");
+                    Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket).deserialize();
+                    String pathname = (String) listenRequestArgs.get("pathname");
+                    int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
+
+
+                    Subscriber subscriber = new Subscriber(address, port, pathname, monitorInterval);
+
+                    Subscriber.addSubscriber(subscriber);
+
+                    System.out.println("Server received listen request: " + listenRequestArgs);
+                    responseString = "SERVER IS LISTENING!";
+
+
                     break;
+
                 case STOP:
+                    //TODO: remove all subscribers
                     running = false;
                     System.out.println("Server is stopping...");
                     responseString = "SERVER IS STOPPING!";
@@ -127,6 +145,7 @@ public class Server {
             responseBuf = responseString.getBytes();
             DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
             socket.send(responsePacket);
+
             System.out.println("Server responded with: " + responseString);
         }
 

@@ -1,9 +1,6 @@
 package client;
 
-import utils.InsertRequest;
-import utils.ReadRequest;
-import utils.RequestType;
-import utils.StopRequest;
+import utils.*;
 
 import java.io.IOException;
 import java.net.*;
@@ -26,13 +23,12 @@ public class Client {
         String[] parts = input.split(",");
         String pathname = requestType == RequestType.STOP ? null : parts[0];
 
-//        System.out.println("Client requesting: " + requestType + " " + pathname + " " + offset + " " + readBytes);
         DatagramPacket requestPacket;
 
         switch (requestType) {
             case READ:
                 //TODO: handle if offset exceeds file size
-                int readOffset =  Integer.parseInt(parts[1]);
+                int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
                 byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes).serialize();
                 requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, address, port);
@@ -43,10 +39,24 @@ public class Client {
                 byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data).serialize();
                 requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, address, port);
                 break;
-//            case LISTEN:
-//
-////                //TODO: implement
-//                break;
+            case LISTEN:
+                int monitorInterval = Integer.parseInt(parts[1]);
+                byte[] listenRequestBuf = new ListenRequest(pathname, monitorInterval).serialize();
+                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, address, port);
+                socket.send(requestPacket);
+                boolean running = true;
+                while (running) {
+                    byte[] responseBuf = new byte[256];
+                    DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length);
+                    socket.receive(responsePacket);
+                    String received = new String(responsePacket.getData(), 0, responsePacket.getLength());
+                    System.out.println("Client received data: " + received);
+                    if (received.equals("INTERVAL ENDED")) {
+//                        running = false;
+                        return received;
+                    }
+                }
+                break;
             case STOP:
                 byte[] stopRequestBuf = new StopRequest().serialize();
                 requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, address, port);
@@ -55,14 +65,14 @@ public class Client {
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
         }
 
+
         socket.send(requestPacket);
 
         byte[] responseBuf = new byte[256];
         DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length);
         socket.receive(responsePacket);
 
-        String received = new String(
-                responsePacket.getData(), 0, responsePacket.getLength());
+        String received = new String(responsePacket.getData(), 0, responsePacket.getLength());
 
         System.out.println("Client received data: " + received);
 
