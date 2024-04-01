@@ -8,18 +8,22 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Subscriber {
-    private InetAddress address;
-    private int port;
+    public static InetAddress address;
+    public static int port;
     private String pathname;
 
     private int monitorInterval;
     private DatagramSocket socket;
+    private InetAddress serverAddress;
+    private int serverPort;
 
-    public Subscriber(InetAddress address, int port, String pathname, int monitorInterval) throws SocketException {
+    public Subscriber(InetAddress address, int port, String pathname, int monitorInterval, InetAddress serverAddress, int serverPort) throws SocketException {
         this.address = address;
         this.port = port;
         this.pathname = pathname;
         this.monitorInterval = monitorInterval; // in minutes
+        this.serverAddress = serverAddress;
+        this.serverPort = serverPort;
         socket = new DatagramSocket();
     }
 
@@ -30,6 +34,8 @@ public class Subscriber {
         this.port = Integer.parseInt(parts[2]);
         this.pathname = parts[3];
         this.monitorInterval = Integer.parseInt(parts[4]);
+        this.serverAddress = InetAddress.getByName(parts[5]);
+        this.serverPort = Integer.parseInt(parts[6]);
         socket = new DatagramSocket();
 
     }
@@ -73,7 +79,7 @@ public class Subscriber {
 
     public static void removeSubscriber(Subscriber subscriber) throws IOException {
         System.out.println("Subscriber has been removed for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.address + ":" + subscriber.port);
-        String key = subscriber.getPathname();
+        String key = currentDir + "/src/data/" + subscriber.getPathname();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).remove(subscriber);
             if (subscribersMap.get(key).isEmpty()) {
@@ -89,13 +95,14 @@ public class Subscriber {
 
     public static void notifySubscribers(String pathname) {
         System.out.println("subscriber for " + pathname + " has been notified");
-        if (subscribersMap.containsKey(pathname)) {
+        String key = currentDir + "/src/data/" + pathname;
+        if (subscribersMap.containsKey(key)) {
             try {
-                for (Subscriber subscriber : subscribersMap.get(pathname)) {
-                    ReadRequest readRequest = new ReadRequest(pathname, 0, (int) Files.size(Paths.get(pathname)));
+                for (Subscriber subscriber : subscribersMap.get(key)) {
+                    ReadRequest readRequest = new ReadRequest(pathname, 0, (int) Files.size(Paths.get(key)), ReadType.SUBSCRIBER);
                     byte[] requestBytes = readRequest.serialize();
 
-                    DatagramPacket packet = new DatagramPacket(requestBytes, requestBytes.length, subscriber.address, subscriber.port);
+                    DatagramPacket packet = new DatagramPacket(requestBytes, requestBytes.length, subscriber.serverAddress, subscriber.serverPort);
                     subscriber.socket.send(packet);
                 }
             } catch (Exception e) {
@@ -103,5 +110,7 @@ public class Subscriber {
             }
         }
     }
+
+    
 
 }

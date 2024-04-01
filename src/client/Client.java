@@ -30,7 +30,7 @@ public class Client {
                 //TODO: handle if offset exceeds file size
                 int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
-                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes).serialize();
+                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, ReadType.NORMAL).serialize();
                 requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, address, port);
                 break;
             case INSERT:
@@ -41,12 +41,12 @@ public class Client {
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
-                byte[] listenRequestBuf = new ListenRequest(pathname, monitorInterval).serialize();
+                byte[] listenRequestBuf = new ListenRequest(address, pathname, monitorInterval).serialize();
                 requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, address, port);
                 socket.send(requestPacket);
                 boolean running = true;
                 while (running) {
-                    byte[] responseBuf = new byte[256];
+                    byte[] responseBuf = new byte[1024];
                     DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length);
                     socket.receive(responsePacket);
                     String received = new String(responsePacket.getData(), 0, responsePacket.getLength());
@@ -68,11 +68,17 @@ public class Client {
 
         socket.send(requestPacket);
 
-        byte[] responseBuf = new byte[256];
+
+        byte[] responseBuf = new byte[1024];
         DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length);
         socket.receive(responsePacket);
 
         String received = new String(responsePacket.getData(), 0, responsePacket.getLength());
+
+        if(requestType == RequestType.INSERT && received.equals("ACK")) {
+            System.out.println("notify subscribers w/ pathname " + pathname);
+            Subscriber.notifySubscribers(pathname);
+        }
 
         System.out.println("Client received data: " + received);
 

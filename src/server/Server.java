@@ -58,6 +58,7 @@ public class Server {
                     String readFileName = (String) readRequestArgs.get("pathname");
                     int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
+                    ReadType readType = (ReadType) readRequestArgs.get("type");
                     byte[] readBuf = new byte[readBytes];
 
                     String readPathName = currentDir + "/src/data/" + readFileName; //won't work on Windows //todo: use path separator
@@ -74,6 +75,17 @@ public class Server {
                     }
                     responseString = new String(readBuf, StandardCharsets.UTF_8);
                     System.out.println("Server received read request: " + readRequestArgs);
+                        responseBuf = responseString.getBytes();
+
+                    if (readType == ReadType.SUBSCRIBER) {
+
+                        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, Subscriber.address, Subscriber.port);
+                        socket.send(responsePacket);
+                    }
+                    else {
+                        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
+                        socket.send(responsePacket);
+                    }
                     break;
 
                 case INSERT:
@@ -105,8 +117,8 @@ public class Server {
                     System.out.println("Server received insert request: " + insertRequestArgs);
 
                     responseBuf = responseString.getBytes();
-                    DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
-                    socket.send(responsePacket);
+                    DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, address, port);
+                    socket.send(updateResponse);
 
 
                     Subscriber.notifySubscribers(filename);
@@ -115,11 +127,12 @@ public class Server {
                 case LISTEN:
                     System.out.println("Server received listen request");
                     Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket).deserialize();
+                    InetAddress serverAddress = (InetAddress) listenRequestArgs.get("serverAddress");
                     String pathname = (String) listenRequestArgs.get("pathname");
                     int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
 
 
-                    Subscriber subscriber = new Subscriber(address, port, pathname, monitorInterval);
+                    Subscriber subscriber = new Subscriber(address, port, pathname, monitorInterval, serverAddress, this.port);
 
                     Subscriber.addSubscriber(subscriber);
 
@@ -140,13 +153,14 @@ public class Server {
                     break;
             }
 
+            if (receivedRequestType != RequestType.READ && receivedRequestType != RequestType.INSERT) {
+                responseBuf = responseString.getBytes();
+                DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
+                socket.send(responsePacket);
+            }
 
-            // response packet
-            responseBuf = responseString.getBytes();
-            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
-            socket.send(responsePacket);
+                System.out.println("Server responded with: " + responseString);
 
-            System.out.println("Server responded with: " + responseString);
         }
 
         socket.close();
