@@ -44,10 +44,11 @@ public class Subscriber {
 
     private static HashMap<String, List<Subscriber>> subscribersMap = new HashMap<>();
     private static Timer timer = new Timer();
+    static String currentDir = Paths.get("").toAbsolutePath().toString();
 
     public static void addSubscriber(Subscriber subscriber) {
         System.out.println("Subscriber has been added for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.address + ":" + subscriber.port);
-        String key = subscriber.getPathname();
+        String key = currentDir + "/src/data/" + subscriber.getPathname();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).add(subscriber);
         } else {
@@ -90,11 +91,12 @@ public class Subscriber {
         System.out.println("subscriber for " + pathname + " has been notified");
         if (subscribersMap.containsKey(pathname)) {
             try {
-                byte[] fileData = Files.readAllBytes(Paths.get(pathname));
                 for (Subscriber subscriber : subscribersMap.get(pathname)) {
-                    DatagramPacket packet = new DatagramPacket(fileData, fileData.length, subscriber.address, subscriber.port);
-                    subscriber.socket.send(packet);
+                    ReadRequest readRequest = new ReadRequest(pathname, 0, (int) Files.size(Paths.get(pathname)));
+                    byte[] requestBytes = readRequest.serialize();
 
+                    DatagramPacket packet = new DatagramPacket(requestBytes, requestBytes.length, subscriber.address, subscriber.port);
+                    subscriber.socket.send(packet);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
