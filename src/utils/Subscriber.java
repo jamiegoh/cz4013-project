@@ -99,7 +99,8 @@ public class Subscriber {
         if (subscribersMap.containsKey(key)) {
             try {
                 for (Subscriber subscriber : subscribersMap.get(key)) {
-                    ReadRequest readRequest = new ReadRequest(pathname, 0, (int) Files.size(Paths.get(key)), ReadType.SUBSCRIBER);
+                    // todo: put 0 as request id for now, dont think we should use ReadRequst here
+                    ReadRequest readRequest = new ReadRequest(pathname, 0, (int) Files.size(Paths.get(key)), ReadType.SUBSCRIBER, 0); 
                     byte[] requestBytes = readRequest.serialize();
 
                     DatagramPacket packet = new DatagramPacket(requestBytes, requestBytes.length, subscriber.serverAddress, subscriber.serverPort);
