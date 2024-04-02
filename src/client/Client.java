@@ -6,14 +6,26 @@ import java.io.IOException;
 import java.net.*;
 
 public class Client {
+    // timeout
+    private static final int TIMEOUT = 1000;
+
     private DatagramSocket socket;
     private InetAddress address;
     private int port;
 
-    public Client(String serverAddress, int port) throws UnknownHostException, SocketException {
+    private InvocationSemantics invSemantics;
+    
+
+    // Request id 
+    private int requestId = 1;
+    
+
+    // Constructor
+    public Client(String serverAddress, int port, InvocationSemantics invocationSemantics) throws UnknownHostException, SocketException {
 //        address = InetAddress.getByName("localhost");
         this.address = InetAddress.getByName(serverAddress);
         this.port = port;
+        this.invSemantics = invocationSemantics;
         socket = new DatagramSocket();
     }
 
@@ -30,18 +42,18 @@ public class Client {
                 //TODO: handle if offset exceeds file size
                 int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
-                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, ReadType.NORMAL).serialize();
+                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, ReadType.NORMAL, requestId).serialize();
                 requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, address, port);
                 break;
             case INSERT:
                 int writeOffset = Integer.parseInt(parts[1]);
                 String data = parts[2];
-                byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data).serialize();
+                byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data, requestId).serialize();
                 requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, address, port);
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
-                byte[] listenRequestBuf = new ListenRequest(address, pathname, monitorInterval).serialize();
+                byte[] listenRequestBuf = new ListenRequest(address, pathname, monitorInterval, requestId).serialize();
                 requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, address, port);
                 socket.send(requestPacket);
                 boolean running = true;
@@ -58,7 +70,7 @@ public class Client {
                 }
                 break;
             case STOP:
-                byte[] stopRequestBuf = new StopRequest().serialize();
+                byte[] stopRequestBuf = new StopRequest(requestId).serialize();
                 requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, address, port);
                 break;
             default:
@@ -88,6 +100,9 @@ public class Client {
 //            System.out.println("Client did not receive ACK :(");
 //            // todo: resend based on resend policy (lecturer calls it at-most-once/at-least-once)
 //        }
+
+        // Increment request id
+        requestId++;
 
         return received;
     }

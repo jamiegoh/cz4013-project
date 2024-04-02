@@ -1,5 +1,6 @@
 import org.jetbrains.annotations.NotNull;
 import utils.RequestType;
+import utils.InvocationSemantics;
 
 import java.util.Scanner;
 
@@ -28,8 +29,10 @@ public class Main {
             System.out.println("Starting client...");
             String serverAddress = args[1];
             int port = Integer.parseInt(args[2]);
+            InvocationSemantics invocationSemantics = args.length == 4 ? InvocationSemantics.valueOf(args[3]) : InvocationSemantics.AT_LEAST_ONCE;
+
             try {
-                client.Client client = new client.Client(serverAddress,port);
+                client.Client client = new client.Client(serverAddress,port,invocationSemantics);
                 Scanner scanner = new Scanner(System.in);
                 boolean running = true;
 
