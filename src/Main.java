@@ -4,7 +4,22 @@ import utils.InvocationSemantics;
 
 import java.util.Scanner;
 
+
 public class Main {
+
+    public static boolean validateInput(RequestType requestType, String input) {
+        String[] inputArr = input.split(",");
+        switch (requestType) {
+            case READ, INSERT:
+                return inputArr.length == 3;
+            case LISTEN:
+                return inputArr.length == 2;
+            case CREATE, ATTR:
+                return inputArr.length == 1;
+            default:
+                return false;
+        }
+    }
     public static void main(@org.jetbrains.annotations.NotNull String @NotNull [] args) {
         System.out.println("Hello world!");
 
@@ -42,21 +57,47 @@ public class Main {
                     String requestTypeStr = scanner.nextLine();
                     RequestType requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
 
+                    String input;
                     switch (requestType) {
                         case READ:
                             System.out.println("Enter the pathname, offset, and readBytes separated by commas:");
+                            input = scanner.nextLine();
+                            if (!validateInput(requestType, input)) {
+                                System.out.println("Invalid input. Please try again.");
+                                continue;
+                            }
                             break;
                         case INSERT:
                             System.out.println("Enter the pathname, offset, and data separated by commas:");
+                            input = scanner.nextLine();
+                            if (!validateInput(requestType, input)) {
+                                System.out.println("Invalid input. Please try again.");
+                                continue;
+                            }
                             break;
                         case LISTEN:
                             System.out.println("Enter the pathname and monitor interval separated by commas:");
+                            input = scanner.nextLine();
+                            if (!validateInput(requestType, input)) {
+                                System.out.println("Invalid input. Please try again.");
+                                continue;
+                            }
                             break;
                         case CREATE:
                             System.out.println("Enter a pathname to create: e.g. /dir1/file1");
+                            input = scanner.nextLine();
+                            if (!validateInput(requestType, input)) {
+                                System.out.println("Invalid input. Please try again.");
+                                continue;
+                            }
                             break;
                         case ATTR:
                             System.out.println("Enter a pathname to get time last modified e.g. /dir1/file1");
+                            input = scanner.nextLine();
+                            if (!validateInput(requestType, input)) {
+                                System.out.println("Invalid input. Please try again.");
+                                continue;
+                            }
                             break;
                         case STOP:
                             client.makeRequest(requestType, "");
@@ -66,7 +107,7 @@ public class Main {
                             System.out.println("Invalid request type. Use READ, INSERT, LISTEN, or STOP");
                             continue;
                     }
-                    String input = scanner.nextLine();
+
                     String response = client.makeRequest(requestType, input);
 
                 }
