@@ -127,8 +127,8 @@ public class Server {
 
                     //Check if file exists before trying to read
                     if (!Paths.get(readPathName).toFile().exists()) {
-                            fileDoesNotExistPacketBuilder(readPathName, clientAddress, clientPort);
-                            break;
+                        fileDoesNotExistPacketBuilder(readPathName, clientAddress, clientPort);
+                        break;
                     }
 
                     try (RandomAccessFile file = new RandomAccessFile(readPathName, "r")) {
