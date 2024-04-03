@@ -128,8 +128,16 @@ public class Client {
                     makeRequest(requestType, "");
                     running = false;
                     continue;
+                case SEARCH:
+                    System.out.println("Enter a substring to search for the file it first appears in)");
+                    input = scanner.nextLine();
+                    if (!validateInput(requestType, input)) {
+                        System.out.println("Invalid input. Please try again.");
+                        continue;
+                    }
+                    break;
                 default:
-                    System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR or STOP");
+                    System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR, STOP or SEARCH");
                     continue;
             }
 
@@ -332,7 +340,7 @@ public class Client {
                 break;
             case SEARCH:
                 byte[] searchRequestBuf = new SearchRequest(pathname, requestId).serialize();
-                requestPacket = new DatagramPacket(searchRequestBuf, searchRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(searchRequestBuf, searchRequestBuf.length, serverAddress, serverPort);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
