@@ -140,6 +140,10 @@ public class Client {
             if (received.equals("ACK")){
                 socket.setSoTimeout(0);
             }
+            if (Objects.equals(received.substring(0, 4), "FAIL")) {
+                System.out.println("File does not exist in server");
+                return received;
+            }
             while (running) {
                 byte[] listenResponseBuf = new byte[1024];
                 DatagramPacket listenResponsePacket = new DatagramPacket(listenResponseBuf, listenResponseBuf.length);

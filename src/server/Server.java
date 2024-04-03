@@ -196,6 +196,12 @@ public class Server {
                     Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
 
                     String pathname = (String) listenRequestArgs.get("pathname");
+
+                    if (!Paths.get(pathname).toFile().exists()) {
+                        responseString = "FAIL - File does not exist.";
+                        break;
+                    }
+
                     int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
 
                     Subscriber subscriber = new Subscriber(clientAddress, clientPort, pathname, monitorInterval);
@@ -250,7 +256,7 @@ public class Server {
                     if (creation) {
                         responseString = "ACK - File Created";
                     } else {
-                        responseString = "ACK - File already exists";
+                        responseString = "FAIL - File already exists";
                     }
                     System.out.println("Server received create request: " + createRequestArgs);
                     break;
