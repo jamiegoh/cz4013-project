@@ -64,7 +64,7 @@ public class Client {
         System.out.println();
 
         while (running) {
-            System.out.println("Which service would you like to perform on server (READ, INSERT, LISTEN, CREATE, ATTR, STOP)?");
+            System.out.println("Which service would you like to perform on server (READ, INSERT, LISTEN, CREATE, ATTR, STOP, SEARCH)?");
             System.out.println("Enter QUIT to exit local client.");
             String requestTypeStr = scanner.nextLine();
 
@@ -78,7 +78,7 @@ public class Client {
                 requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
             }
             catch (IllegalArgumentException e) {
-                System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR, or STOP");
+                System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR, STOP or SEARCH");
                 continue;
             }
 
@@ -147,7 +147,7 @@ public class Client {
                 return inputArr.length == 3;
             case LISTEN:
                 return inputArr.length == 2;
-            case CREATE, ATTR:
+            case CREATE, ATTR, SEARCH:
                 return inputArr.length == 1;
             default:
                 return false;
