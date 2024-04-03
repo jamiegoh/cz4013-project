@@ -18,7 +18,8 @@ public class Client {
     private int requestId = 1;
 
     private DatagramSocket socket;
-    private InetAddress address;
+    private InetAddress serverAddress;
+    private String clientAddress;
     private int port;
 
     // Cache of responses
@@ -34,7 +35,8 @@ public class Client {
     // Constructor
     public Client(String serverAddress, int port, InvocationSemantics invocationSemantics) throws UnknownHostException, SocketException {
 //        address = InetAddress.getByName("localhost");
-        this.address = InetAddress.getByName(serverAddress);
+        this.serverAddress = InetAddress.getByName(serverAddress);
+        this.clientAddress = InetAddress.getLocalHost().getHostAddress();
         this.port = port;
         this.invocationSemantics = invocationSemantics;
         socket = new DatagramSocket();
@@ -172,28 +174,28 @@ public class Client {
                 int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
                 byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, ReadType.NORMAL, requestId).serialize();
-                requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, address, port);
+                requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, serverAddress, port);
                 break;
             case INSERT:
                 int writeOffset = Integer.parseInt(parts[1]);
                 String data = parts[2];
                 byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data, requestId).serialize();
-                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, address, port);
+                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, serverAddress, port);
                 // todo: should we cache the data here?
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
                 // todo: are we passing server own address here?
-                byte[] listenRequestBuf = new ListenRequest(address, pathname, monitorInterval, requestId).serialize();
-                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, address, port);
+                byte[] listenRequestBuf = new ListenRequest(clientAddress, pathname, monitorInterval, requestId).serialize();
+                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, serverAddress, port);
                 break;
             case STOP:
                 byte[] stopRequestBuf = new StopRequest(requestId).serialize();
-                requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, address, port);
+                requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, serverAddress, port);
                 break;
             case ATTR:
                 byte[] attrRequestBuf = new AttrRequest(pathname, requestId).serialize();
-                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, address, port);
+                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, serverAddress, port);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
