@@ -19,8 +19,9 @@ public class Main {
         if (appType.equals("--server")) {
             System.out.println("Starting server...");
             int port = Integer.parseInt(args[1]);
+            InvocationSemantics invocationSemantics = args.length == 3 ? InvocationSemantics.valueOf(args[2]) : InvocationSemantics.AT_LEAST_ONCE;
             try {
-                server.Server server = new server.Server(port);
+                server.Server server = new server.Server(port, invocationSemantics);
                 server.run();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -32,7 +33,7 @@ public class Main {
             InvocationSemantics invocationSemantics = args.length == 4 ? InvocationSemantics.valueOf(args[3]) : InvocationSemantics.AT_LEAST_ONCE;
 
             try {
-                client.Client client = new client.Client(serverAddress,port,invocationSemantics);
+                client.Client client = new client.Client(serverAddress, port, invocationSemantics);
                 Scanner scanner = new Scanner(System.in);
                 boolean running = true;
 
