@@ -60,6 +60,12 @@ public class Server {
         }
     }
 
+    public void fileDoesNotExistPacketBuilder(String pathname, InetAddress clientAddress, int clientPort) throws IOException {
+            String responseString = "FAIL - File does not exist.";
+            responseBuf = responseString.getBytes();
+            DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+            socket.send(updateResponse);
+    }
 
     public void run() throws IOException {
         running = true;
@@ -120,14 +126,11 @@ public class Server {
                     System.out.println("Pathname: " + readPathName);
 
                     //Check if file exists before trying to read
-                    if(!Paths.get(readPathName).toFile().exists()){
-                        responseString = "FAIL - File does not exist.";
-                        responseBuf = responseString.getBytes();
-                        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-                        socket.send(responsePacket);
-                        break;
+                    if (!Paths.get(readPathName).toFile().exists()) {
+                            fileDoesNotExistPacketBuilder(readPathName, clientAddress, clientPort);
+                            break;
                     }
-                    
+
                     try (RandomAccessFile file = new RandomAccessFile(readPathName, "r")) {
                         if (readOffset >= file.length()) {
                             responseString = "FAIL - Offset exceeds file length.";
@@ -143,9 +146,6 @@ public class Server {
                     }
                     responseString = new String(readBuf, StandardCharsets.UTF_8);
                     System.out.println("Server received read request: " + readRequestArgs);
-                    responseBuf = responseString.getBytes();
-                    DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-                    socket.send(responsePacket);
 
                     break;
 
@@ -159,132 +159,125 @@ public class Server {
                     String writePathName = currentDir + "/src/data/" + filename;
 
                     if (!Paths.get(writePathName).toFile().exists()) {
-                        responseString = "FAIL - File does not exist.";
-                        responseBuf = responseString.getBytes();
-                        DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-                        socket.send(updateResponse);
+                        fileDoesNotExistPacketBuilder(writePathName, clientAddress, clientPort);
                         break;
+                    } else{
+
+                try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
+                    long fileLength = file.length();
+                    if (writeOffset < fileLength) {
+                        byte[] temp = new byte[(int) (fileLength - writeOffset)];
+                        file.seek(writeOffset);
+                        file.readFully(temp);
+                        file.seek(writeOffset);
+                        file.write(data.getBytes(StandardCharsets.UTF_8));
+                        file.write(temp);
                     } else {
-
-                        try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
-                            long fileLength = file.length();
-                            if (writeOffset < fileLength) {
-                                byte[] temp = new byte[(int) (fileLength - writeOffset)];
-                                file.seek(writeOffset);
-                                file.readFully(temp);
-                                file.seek(writeOffset);
-                                file.write(data.getBytes(StandardCharsets.UTF_8));
-                                file.write(temp);
-                            } else {
-                                file.seek(fileLength);
-                                file.write(data.getBytes(StandardCharsets.UTF_8));
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        System.out.println("Server received insert request: " + insertRequestArgs);
-
-                        responseBuf = responseString.getBytes();
-                        DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-
-
-                        List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
-                        System.out.println("Subscribers: " + subscribers);
-                        if (subscribers != null) {
-                            for (Subscriber subscriber : subscribers) {
-                                System.out.println("Currently notifying subscriber: " + subscriber);
-
-                                notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
-                            }
-                        }
-                        socket.send(updateResponse);
-
-                        break;
+                        file.seek(fileLength);
+                        file.write(data.getBytes(StandardCharsets.UTF_8));
                     }
-                case LISTEN:
-                    System.out.println("Server received listen request");
-                    Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-                    String pathname = (String) listenRequestArgs.get("pathname");
-                    int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
+                System.out.println("Server received insert request: " + insertRequestArgs);
 
-                    Subscriber subscriber = new Subscriber(clientAddress, clientPort, pathname, monitorInterval);
-
-                    Subscriber.addSubscriber(subscriber);
-
-                    System.out.println("Server received listen request: " + listenRequestArgs);
-
-                    break;
-
-                case STOP:
-                    running = false;
-                    System.out.println("Server is stopping...");
-                    responseString = "SERVER IS STOPPING!";
-                    break;
-
-                case ATTR:
-                    // get file attributes
-                    Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
-                    String attrFileName = (String) attrRequestArgs.get("pathname");
-                    String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
-
-                    if (!Paths.get(attrPathName).toFile().exists()) {
-                        responseString = "FAIL - File does not exist.";
-                        break;
-                    }
-                    // return last modified time    
-                    long lastModified = Paths.get(attrPathName).toFile().lastModified();
-                    responseString = Long.toString(lastModified);
-
-                    Instant instant = Instant.ofEpochMilli(lastModified);
-                    String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                            .withZone(ZoneId.systemDefault())
-                            .format(instant);
-                    System.out.println("Last modified time: " + displayString);
-                    System.out.println("Server received attr request: " + attrRequestArgs);
-                    break;
-
-                case CREATE:
-                    Map<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
-                    String createFileName = (String) createRequestArgs.get("pathname");
-                    String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
-
-
-                    // create directories if they don't exist
-                    Paths.get(createPathName).getParent().toFile().mkdirs();
-
-
-                    // create file
-                    System.out.println("Creating file: " + Paths.get(createPathName).toString());
-                    boolean creation = Paths.get(createPathName).toFile().createNewFile();
-                    if (creation) {
-                        responseString = "ACK - File Created";
-                    } else {
-                        responseString = "ACK - File already exists";
-                    }
-                    System.out.println("Server received create request: " + createRequestArgs);
-                    break;
-
-                default:
-                    System.out.println("Invalid request type: " + receivedRequestType);
-                    break;
-            }
-
-            if (receivedRequestType != RequestType.READ && receivedRequestType != RequestType.INSERT) {
                 responseBuf = responseString.getBytes();
-                DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-                socket.send(responsePacket);
-                addProcessedRequest(requestId, responsePacket);
-            }
 
-            System.out.println("Server responded with: " + responseString);
 
+                List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
+                System.out.println("Subscribers: " + subscribers);
+                if (subscribers != null) {
+                    for (Subscriber subscriber : subscribers) {
+                        System.out.println("Currently notifying subscriber: " + subscriber);
+
+                        notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
+                    }
+                }
+
+                    }
+                    break;
+                case LISTEN:
+                System.out.println("Server received listen request");
+                Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
+
+                String pathname = (String) listenRequestArgs.get("pathname");
+                int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
+
+                Subscriber subscriber = new Subscriber(clientAddress, clientPort, pathname, monitorInterval);
+
+                Subscriber.addSubscriber(subscriber);
+
+                System.out.println("Server received listen request: " + listenRequestArgs);
+
+                break;
+
+            case STOP:
+                running = false;
+                System.out.println("Server is stopping...");
+                responseString = "SERVER IS STOPPING!";
+                break;
+
+            case ATTR:
+                // get file attributes
+                Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
+                String attrFileName = (String) attrRequestArgs.get("pathname");
+                String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
+
+                if (!Paths.get(attrPathName).toFile().exists()) {
+                    responseString = "FAIL - File does not exist.";
+                    break;
+                }
+                // return last modified time
+                long lastModified = Paths.get(attrPathName).toFile().lastModified();
+                responseString = Long.toString(lastModified);
+
+                Instant instant = Instant.ofEpochMilli(lastModified);
+                String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        .withZone(ZoneId.systemDefault())
+                        .format(instant);
+                System.out.println("Last modified time: " + displayString);
+                System.out.println("Server received attr request: " + attrRequestArgs);
+                break;
+
+            case CREATE:
+                Map<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
+                String createFileName = (String) createRequestArgs.get("pathname");
+                String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
+
+
+                // create directories if they don't exist
+                Paths.get(createPathName).getParent().toFile().mkdirs();
+
+
+                // create file
+                System.out.println("Creating file: " + Paths.get(createPathName).toString());
+                boolean creation = Paths.get(createPathName).toFile().createNewFile();
+                if (creation) {
+                    responseString = "ACK - File Created";
+                } else {
+                    responseString = "ACK - File already exists";
+                }
+                System.out.println("Server received create request: " + createRequestArgs);
+                break;
+
+            default:
+                System.out.println("Invalid request type: " + receivedRequestType);
+                break;
         }
+
+            responseBuf = responseString.getBytes();
+            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+            socket.send(responsePacket);
+            addProcessedRequest(requestId, responsePacket);
+
+        System.out.println("Server responded with: " + responseString);
+
+    }
 
         socket.close();
         System.out.println("Server has stopped.");
-    }
+}
 
 
 }
