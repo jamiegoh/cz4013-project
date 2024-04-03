@@ -185,28 +185,8 @@ public class Server {
                     Subscriber.addSubscriber(subscriber);
 
                     System.out.println("Server received listen request: " + listenRequestArgs);
-                    responseString = "SERVER IS LISTENING!";
 
                     break;
-
-//                case NOTIFY:
-//                    Map<String, Object> notifyRequestArgs = new NotifyRequest(requestPacket, requestId).deserialize();
-//
-//                    String key = (String) notifyRequestArgs.get("key");
-//                    InetAddress clientAddress = (InetAddress) notifyRequestArgs.get("clientAddress");
-//                    int clientPort = (int) notifyRequestArgs.get("clientPort");
-//
-//                    try (RandomAccessFile file = new RandomAccessFile(key, "r")) {
-//                        byte[] readBuf = new byte[(int) file.length()];
-//                        file.seek(0);
-//                        file.read(readBuf, 0, (int) file.length());
-//                        responseBuf = new String(readBuf, StandardCharsets.UTF_8).getBytes();
-//                        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-//                        socket.send(responsePacket);
-//
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
 
                 case STOP:
                     //TODO: remove all subscribers
@@ -229,6 +209,27 @@ public class Server {
                     long lastModified = Paths.get(attrPathName).toFile().lastModified();
                     responseString = Long.toString(lastModified);
                     System.out.println("Server received attr request: " + attrRequestArgs);
+                    break;
+
+                case CREATE:
+                    Map<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
+                    String createFileName = (String) createRequestArgs.get("pathname");
+                    String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
+
+
+                    // create directories if they don't exist
+                    Paths.get(createPathName).getParent().toFile().mkdirs();
+
+
+                    // create file
+                    System.out.println("Creating file: " + Paths.get(createPathName).toString());
+                    boolean creation = Paths.get(createPathName).toFile().createNewFile();
+                    if (creation) {
+                        responseString = "ACK - File Created";
+                    } else {
+                        responseString = "ACK - File already existss";
+                    }
+                    System.out.println("Server received create request: " + createRequestArgs);
                     break;
 
                 default:

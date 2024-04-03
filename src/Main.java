@@ -52,6 +52,9 @@ public class Main {
                         case LISTEN:
                             System.out.println("Enter the pathname and monitor interval separated by commas:");
                             break;
+                        case CREATE:
+                            System.out.println("Enter a pathname");
+                            break;
                         case STOP:
                             client.makeRequest(requestType, "");
                             running = false;

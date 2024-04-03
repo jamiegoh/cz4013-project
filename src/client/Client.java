@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class Client {
     // Invocation semantics
@@ -105,17 +106,13 @@ public class Client {
 
         System.out.println("Client received data: " + received);
 
-//        if (received.equals("ACK")) {
-//            System.out.println("Client received ACK :)");
-//        } else {
-//            System.out.println("Client did not receive ACK :(");
-//            // todo: resend based on resend policy (lecturer calls it at-most-once/at-least-once)
-//        }
 
         // Listen case
         if (requestType == RequestType.LISTEN) {
             boolean running = true;
-            socket.setSoTimeout(0);
+            if (received.equals("ACK")){
+                socket.setSoTimeout(0);
+            }
             while (running) {
                 byte[] listenResponseBuf = new byte[1024];
                 DatagramPacket listenResponsePacket = new DatagramPacket(listenResponseBuf, listenResponseBuf.length);
@@ -123,9 +120,8 @@ public class Client {
                 String listenReceived = new String(listenResponsePacket.getData(), 0, listenResponsePacket.getLength());
                 System.out.println("Client received data: " + listenReceived);
                 // Store in cache
-                storeFileCache(pathname, Integer.parseInt(parts[1]), listenResponsePacket.getData());
+                storeFileCache(pathname, 0, listenResponsePacket.getData());
                 if (received.equals("INTERVAL ENDED")) {
-//                        running = false;
                     return listenReceived;
                 }
             }
@@ -160,6 +156,7 @@ public class Client {
             System.out.println("Max retries reached, exiting...");
             return null;
         }
+
 
         return responsePacket;
     }
@@ -197,6 +194,10 @@ public class Client {
             case ATTR:
                 byte[] attrRequestBuf = new AttrRequest(pathname, requestId).serialize();
                 requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, serverAddress, clientPort);
+                break;
+            case CREATE:
+                byte[] createRequestBuf = new CreateRequest(pathname, requestId).serialize();
+                requestPacket = new DatagramPacket(createRequestBuf, createRequestBuf.length, serverAddress, clientPort);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
