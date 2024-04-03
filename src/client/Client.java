@@ -85,11 +85,11 @@ public class Client {
                     long serverLastModifiedTime = Long.parseLong(attrReceived);
                     System.out.println("Server file last modified time: " + serverLastModifiedTime);
                     // if last modified time of file is greater than smallestTime, then cache is invalid
-                    if (serverLastModifiedTime > getLocalLastModifiedTime(pathname)) {
+                    if (serverLastModifiedTime > getLocalLastModifiedTime(pathname, offset, readBytes)) {
                         System.out.println("Cache is invalid, updating cache...");
                         received = null;
                     } else {
-                        System.out.println("Cache is not changed in server");
+                        System.out.println("File is not changed in server, returning cache...");
                         // cache is valid
                         received = new String(getFileCache(pathname, offset, readBytes));
                         // update last validated time
@@ -259,7 +259,10 @@ public class Client {
         }
         Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
         for (int i = offset; i < offset + readBytes; i++) {
-            if (lastValidatedTime.containsKey(i) && lastValidatedTime.get(i) < smallestTime) {
+            if (!lastValidatedTime.containsKey(i)) {
+                return 0;
+            }
+            if (lastValidatedTime.get(i) < smallestTime) {
                 smallestTime = lastValidatedTime.get(i);
             }
         }
@@ -267,13 +270,16 @@ public class Client {
     }
 
     // get last modified time of file
-    public long getLocalLastModifiedTime(String pathname) {
+    public long getLocalLastModifiedTime(String pathname, int offset, int readBytes) {
         long smallestTime = Long.MAX_VALUE;
         if (!entryLastModifiedTime.containsKey(pathname)) {
             return 0;
         }
         Map<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
-        for (int i : lastModifiedTime.keySet()) {
+        for (int i = offset; i < offset + readBytes; i++) {
+            if (!lastModifiedTime.containsKey(i)) {
+                return 0;
+            }
             if (lastModifiedTime.get(i) < smallestTime) {
                 smallestTime = lastModifiedTime.get(i);
             }
