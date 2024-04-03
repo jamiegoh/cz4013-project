@@ -7,6 +7,7 @@ import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Scanner;
 
 public class Client {
     // Invocation semantics
@@ -20,6 +21,8 @@ public class Client {
 
     private DatagramSocket socket;
     private InetAddress serverAddress;
+    private int serverPort;
+
     private String clientAddress;
     private int clientPort;
     
@@ -36,15 +39,119 @@ public class Client {
 
     
 
+
     // Constructor
-    public Client(String serverAddress, int port, InvocationSemantics invocationSemantics, int freshnessInterval) throws UnknownHostException, SocketException {
+    public Client(String serverAddress, int serverPort, InvocationSemantics invocationSemantics, int freshnessInterval) throws UnknownHostException, SocketException {
+        this.socket = new DatagramSocket();
         this.serverAddress = InetAddress.getByName(serverAddress);
+        this.serverPort = serverPort;
         this.clientAddress = InetAddress.getLocalHost().getHostAddress();
-        this.clientPort = port;
+        this.clientPort = socket.getLocalPort();
         this.invocationSemantics = invocationSemantics;
         this.freshnessInterval = freshnessInterval;
+    }
 
-        socket = new DatagramSocket();
+    // run 
+    public void run() throws IOException {
+        Scanner scanner = new Scanner(System.in);
+        boolean running = true;
+
+        System.out.println("Client IP address: " + clientAddress);
+        System.out.println("Client is running on port: " + clientPort);
+        System.out.println("Client is connected to server: " + serverAddress + ":" + serverPort);
+        System.out.println("Invocation semantics: " + invocationSemantics);
+        System.out.println("Freshness interval: " + freshnessInterval);
+        System.out.println();
+
+        while (running) {
+            System.out.println("Which service would you like to perform on server (READ, INSERT, LISTEN, CREATE, ATTR, STOP)?");
+            System.out.println("Enter QUIT to exit local client.");
+            String requestTypeStr = scanner.nextLine();
+
+            if (requestTypeStr.equals("QUIT")) {
+                running = false;
+                continue;
+            }
+
+            RequestType requestType;
+            try {
+                requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
+            }
+            catch (IllegalArgumentException e) {
+                System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR, or STOP");
+                continue;
+            }
+
+            String input;
+            switch (requestType) {
+                case READ:
+                    System.out.println("Enter the pathname, offset, and readBytes separated by commas:");
+                    input = scanner.nextLine();
+                    if (!validateInput(requestType, input)) {
+                        System.out.println("Invalid input. Please try again.");
+                        continue;
+                    }
+                    break;
+                case INSERT:
+                    System.out.println("Enter the pathname, offset, and data separated by commas:");
+                    input = scanner.nextLine();
+                    if (!validateInput(requestType, input)) {
+                        System.out.println("Invalid input. Please try again.");
+                        continue;
+                    }
+                    break;
+                case LISTEN:
+                    System.out.println("Enter the pathname and monitor interval (minutes) separated by commas:");
+                    input = scanner.nextLine();
+                    if (!validateInput(requestType, input)) {
+                        System.out.println("Invalid input. Please try again.");
+                        continue;
+                    }
+                    break;
+                case CREATE:
+                    System.out.println("Enter a pathname to create: e.g. /dir1/file1");
+                    input = scanner.nextLine();
+                    if (!validateInput(requestType, input)) {
+                        System.out.println("Invalid input. Please try again.");
+                        continue;
+                    }
+                    break;
+                case ATTR:
+                    System.out.println("Enter a pathname to get time last modified e.g. /dir1/file1");
+                    input = scanner.nextLine();
+                    if (!validateInput(requestType, input)) {
+                        System.out.println("Invalid input. Please try again.");
+                        continue;
+                    }
+                    break;
+                case STOP:
+                    makeRequest(requestType, "");
+                    running = false;
+                    continue;
+                default:
+                    System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR or STOP");
+                    continue;
+            }
+
+            makeRequest(requestType, input);
+            
+        }
+        scanner.close();
+        close();
+    }
+
+    public static boolean validateInput(RequestType requestType, String input) {
+        String[] inputArr = input.split(",");
+        switch (requestType) {
+            case READ, INSERT:
+                return inputArr.length == 3;
+            case LISTEN:
+                return inputArr.length == 2;
+            case CREATE, ATTR:
+                return inputArr.length == 1;
+            default:
+                return false;
+        }
     }
 
     public String makeRequest(RequestType requestType, String input) throws IOException {
@@ -156,9 +263,6 @@ public class Client {
             }
         }
 
-        // Increment request id
-        requestId++;
-
         return received;
     }
 
@@ -200,35 +304,39 @@ public class Client {
                 int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
                 byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, requestId).serialize();
-                requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, serverAddress, serverPort);
                 break;
             case INSERT:
                 int writeOffset = Integer.parseInt(parts[1]);
                 String data = parts[2];
                 byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data, requestId).serialize();
-                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, serverAddress, serverPort);
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
                 // todo: are we passing server own address here?
                 byte[] listenRequestBuf = new ListenRequest(pathname, monitorInterval, requestId).serialize();
-                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, serverAddress, serverPort);
                 break;
             case STOP:
                 byte[] stopRequestBuf = new StopRequest(requestId).serialize();
-                requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, serverAddress, serverPort);
                 break;
             case ATTR:
                 byte[] attrRequestBuf = new AttrRequest(pathname, requestId).serialize();
-                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, serverAddress, serverPort);
                 break;
             case CREATE:
                 byte[] createRequestBuf = new CreateRequest(pathname, requestId).serialize();
-                requestPacket = new DatagramPacket(createRequestBuf, createRequestBuf.length, serverAddress, clientPort);
+                requestPacket = new DatagramPacket(createRequestBuf, createRequestBuf.length, serverAddress, serverPort);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
         }
+
+        // Increment request id
+        requestId++;
+
         return requestPacket;
     }
 

@@ -66,6 +66,8 @@ public class Server {
         // output server ip address
         System.out.println("Server IP address: " + InetAddress.getLocalHost().getHostAddress());
         System.out.println("Server is running on port " + this.serverPort);
+        System.out.println("Invocation semantics: " + invocationSemantics);
+        System.out.println();
 
 
         while (running) {
