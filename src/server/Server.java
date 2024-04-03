@@ -163,121 +163,119 @@ public class Server {
                         break;
                     } else{
 
-                try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
-                    long fileLength = file.length();
-                    if (writeOffset < fileLength) {
-                        byte[] temp = new byte[(int) (fileLength - writeOffset)];
-                        file.seek(writeOffset);
-                        file.readFully(temp);
-                        file.seek(writeOffset);
-                        file.write(data.getBytes(StandardCharsets.UTF_8));
-                        file.write(temp);
-                    } else {
-                        file.seek(fileLength);
-                        file.write(data.getBytes(StandardCharsets.UTF_8));
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                        try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
+                            long fileLength = file.length();
+                            if (writeOffset < fileLength) {
+                                byte[] temp = new byte[(int) (fileLength - writeOffset)];
+                                file.seek(writeOffset);
+                                file.readFully(temp);
+                                file.seek(writeOffset);
+                                file.write(data.getBytes(StandardCharsets.UTF_8));
+                                file.write(temp);
+                            } else {
+                                file.seek(fileLength);
+                                file.write(data.getBytes(StandardCharsets.UTF_8));
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
 
-                System.out.println("Server received insert request: " + insertRequestArgs);
+                        System.out.println("Server received insert request: " + insertRequestArgs);
 
-                responseBuf = responseString.getBytes();
+                        responseBuf = responseString.getBytes();
 
 
-                List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
-                System.out.println("Subscribers: " + subscribers);
-                if (subscribers != null) {
-                    for (Subscriber subscriber : subscribers) {
-                        System.out.println("Currently notifying subscriber: " + subscriber);
+                        List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
+                        System.out.println("Subscribers: " + subscribers);
+                        if (subscribers != null) {
+                            for (Subscriber subscriber : subscribers) {
+                                System.out.println("Currently notifying subscriber: " + subscriber);
 
-                        notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
-                    }
-                }
-
+                                notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
+                            }
+                        }
                     }
                     break;
+
                 case LISTEN:
-                System.out.println("Server received listen request");
-                Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received listen request");
+                    Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
 
-                String pathname = (String) listenRequestArgs.get("pathname");
-                int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
+                    String pathname = (String) listenRequestArgs.get("pathname");
+                    int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
 
-                Subscriber subscriber = new Subscriber(clientAddress, clientPort, pathname, monitorInterval);
+                    Subscriber subscriber = new Subscriber(clientAddress, clientPort, pathname, monitorInterval);
 
-                Subscriber.addSubscriber(subscriber);
+                    Subscriber.addSubscriber(subscriber);
 
-                System.out.println("Server received listen request: " + listenRequestArgs);
+                    System.out.println("Server received listen request: " + listenRequestArgs);
 
-                break;
-
-            case STOP:
-                running = false;
-                System.out.println("Server is stopping...");
-                responseString = "SERVER IS STOPPING!";
-                break;
-
-            case ATTR:
-                // get file attributes
-                Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
-                String attrFileName = (String) attrRequestArgs.get("pathname");
-                String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
-
-                if (!Paths.get(attrPathName).toFile().exists()) {
-                    responseString = "FAIL - File does not exist.";
                     break;
-                }
-                // return last modified time
-                long lastModified = Paths.get(attrPathName).toFile().lastModified();
-                responseString = Long.toString(lastModified);
 
-                Instant instant = Instant.ofEpochMilli(lastModified);
-                String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        .withZone(ZoneId.systemDefault())
-                        .format(instant);
-                System.out.println("Last modified time: " + displayString);
-                System.out.println("Server received attr request: " + attrRequestArgs);
-                break;
+                case STOP:
+                    running = false;
+                    System.out.println("Server is stopping...");
+                    responseString = "SERVER IS STOPPING!";
+                    break;
 
-            case CREATE:
-                Map<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
-                String createFileName = (String) createRequestArgs.get("pathname");
-                String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
+                case ATTR:
+                    // get file attributes
+                    Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
+                    String attrFileName = (String) attrRequestArgs.get("pathname");
+                    String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
+
+                    if (!Paths.get(attrPathName).toFile().exists()) {
+                        responseString = "FAIL - File does not exist.";
+                        break;
+                    }
+                    // return last modified time
+                    long lastModified = Paths.get(attrPathName).toFile().lastModified();
+                    responseString = Long.toString(lastModified);
+
+                    Instant instant = Instant.ofEpochMilli(lastModified);
+                    String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                            .withZone(ZoneId.systemDefault())
+                            .format(instant);
+                    System.out.println("Last modified time: " + displayString);
+                    System.out.println("Server received attr request: " + attrRequestArgs);
+                    break;
+
+                case CREATE:
+                    Map<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
+                    String createFileName = (String) createRequestArgs.get("pathname");
+                    String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
 
 
-                // create directories if they don't exist
-                Paths.get(createPathName).getParent().toFile().mkdirs();
+                    // create directories if they don't exist
+                    Paths.get(createPathName).getParent().toFile().mkdirs();
 
 
-                // create file
-                System.out.println("Creating file: " + Paths.get(createPathName).toString());
-                boolean creation = Paths.get(createPathName).toFile().createNewFile();
-                if (creation) {
-                    responseString = "ACK - File Created";
-                } else {
-                    responseString = "ACK - File already exists";
-                }
-                System.out.println("Server received create request: " + createRequestArgs);
-                break;
+                    // create file
+                    System.out.println("Creating file: " + Paths.get(createPathName).toString());
+                    boolean creation = Paths.get(createPathName).toFile().createNewFile();
+                    if (creation) {
+                        responseString = "ACK - File Created";
+                    } else {
+                        responseString = "ACK - File already exists";
+                    }
+                    System.out.println("Server received create request: " + createRequestArgs);
+                    break;
 
-            default:
-                System.out.println("Invalid request type: " + receivedRequestType);
-                break;
-        }
+                default:
+                    System.out.println("Invalid request type: " + receivedRequestType);
+                    break;
+            }
 
             responseBuf = responseString.getBytes();
             DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
             socket.send(responsePacket);
             addProcessedRequest(requestId, responsePacket);
-
-        System.out.println("Server responded with: " + responseString);
-
-    }
+            System.out.println("Server responded with: " + responseString);
+        }
 
         socket.close();
         System.out.println("Server has stopped.");
-}
+    }
 
 
 }
