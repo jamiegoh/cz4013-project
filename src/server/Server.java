@@ -118,11 +118,18 @@ public class Server {
                     System.out.println("Pathname: " + readPathName);
 
                     try (RandomAccessFile file = new RandomAccessFile(readPathName, "r")) {
+                        if (readOffset >= file.length()) {
+                            responseString = "Request Failed - Offset exceeds file length.";
+                            break;
+                        }
+                        else if (readOffset + readBytes > file.length()) {
+                            readBytes = (int) (file.length() - readOffset);
+                            System.out.println("Read bytes exceeds file length. Reading only " + readBytes + " bytes.");
+                        }
                         file.seek(readOffset);
                         file.read(readBuf, 0, readBytes);
                     } catch (IOException e) {
                         e.printStackTrace();
-                        //TODO: respond w/ meaningful error message
                     }
                     responseString = new String(readBuf, StandardCharsets.UTF_8);
                     System.out.println("Server received read request: " + readRequestArgs);

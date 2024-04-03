@@ -108,11 +108,6 @@ public class Client {
         }
 
 
-//        if(requestType == RequestType.INSERT && received.equals("ACK")) {
-//            System.out.println("notify subscribers w/ pathname " + pathname);
-//            Subscriber.notifySubscribers(pathname);
-//        }
-
         System.out.println("Client received data: " + received);
 
 
@@ -177,7 +172,6 @@ public class Client {
         // process request
         switch (requestType) {
             case READ:
-                //TODO: handle if offset exceeds file size
                 int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
                 byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, requestId).serialize();
@@ -188,7 +182,6 @@ public class Client {
                 String data = parts[2];
                 byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data, requestId).serialize();
                 requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, serverAddress, clientPort);
-                // todo: should we cache the data here?
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
