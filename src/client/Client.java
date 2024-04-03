@@ -77,7 +77,7 @@ public class Client {
 
                 // if file does not exist
                 if (Objects.equals(attrReceived.substring(0, 4), "FAIL")) {
-                    System.out.println("File does not exist in server");
+                    System.out.println("FAIL - File does not exist in server");
                     return attrReceived;
                 }
                 else{
