@@ -53,8 +53,14 @@ public class Main {
                 boolean running = true;
 
                 while (running) {
-                    System.out.println("Which service would you like to perform (READ, INSERT, LISTEN, CREATE, ATTR, STOP)?");
+                    System.out.println("Which service would you like to perform on server (READ, INSERT, LISTEN, CREATE, ATTR, STOP)?");
+                    System.out.println("Enter QUIT to exit local client.");
                     String requestTypeStr = scanner.nextLine();
+
+                    if (requestTypeStr.equals("QUIT")) {
+                        running = false;
+                        continue;
+                    }
 
                     RequestType requestType;
                     try {
@@ -84,7 +90,7 @@ public class Main {
                             }
                             break;
                         case LISTEN:
-                            System.out.println("Enter the pathname and monitor interval separated by commas:");
+                            System.out.println("Enter the pathname and monitor interval (minutes) separated by commas:");
                             input = scanner.nextLine();
                             if (!validateInput(requestType, input)) {
                                 System.out.println("Invalid input. Please try again.");

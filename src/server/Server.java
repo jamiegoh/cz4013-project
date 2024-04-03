@@ -64,7 +64,10 @@ public class Server {
 
     public void run() throws IOException {
         running = true;
+        // output server ip address
+        System.out.println("Server IP address: " + InetAddress.getLocalHost().getHostAddress());
         System.out.println("Server is running on port " + this.serverPort);
+
 
         while (running) {
             // wait for client request

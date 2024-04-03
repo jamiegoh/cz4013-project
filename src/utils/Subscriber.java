@@ -72,7 +72,7 @@ public class Subscriber {
     }
 
     public static void removeSubscriber(Subscriber subscriber) throws IOException {
-        System.out.println("Subscriber has been removed for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
+        System.out.println("Subscriber has been removed for " + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
         String key = currentDir + "/src/data/" + subscriber.getPathname();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).remove(subscriber);

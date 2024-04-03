@@ -117,7 +117,16 @@ public class Client {
                 }
             }
         }
-        
+
+        if (received == null){
+            // send request
+            socket.send(processRequest(requestType, parts, pathname));
+            // receive response
+            DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
+
+            // If we get here, we have received a response
+            received = new String(responsePacket.getData(), 0, responsePacket.getLength());
+        }
 
 
 
@@ -138,7 +147,7 @@ public class Client {
                 System.out.println("Client received data: " + listenReceived);
                 // Store in cache
                 storeFileCache(pathname, 0, listenResponsePacket.getData());
-                if (received.equals("INTERVAL ENDED")) {
+                if (listenReceived.equals("INTERVAL ENDED")) {
                     return listenReceived;
                 }
             }
@@ -217,10 +226,8 @@ public class Client {
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
         }
-
         return requestPacket;
     }
-
 
     // validate cache freshness
     public boolean validateCache(String pathname, int offset, int readBytes) {
