@@ -60,11 +60,13 @@ public class Server {
         }
     }
 
-    public void fileDoesNotExistPacketBuilder(String pathname, InetAddress clientAddress, int clientPort) throws IOException {
-            String responseString = "FAIL - File does not exist.";
-            responseBuf = responseString.getBytes();
-            DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-            socket.send(updateResponse);
+    public void fileDoesNotExistPacketBuilder(String pathname, InetAddress clientAddress, int clientPort, int requestId) throws IOException {
+        String responseString = "FAIL - File does not exist.";
+        responseBuf = responseString.getBytes();
+        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+        socket.send(responsePacket);
+        addProcessedRequest(requestId, responsePacket);
+
     }
 
     public void run() throws IOException {
@@ -127,7 +129,7 @@ public class Server {
 
                     //Check if file exists before trying to read
                     if (!Paths.get(readPathName).toFile().exists()) {
-                        fileDoesNotExistPacketBuilder(readPathName, clientAddress, clientPort);
+                        fileDoesNotExistPacketBuilder(readPathName, clientAddress, clientPort, requestId);
                         break;
                     }
 
@@ -159,9 +161,9 @@ public class Server {
                     String writePathName = currentDir + "/src/data/" + filename;
 
                     if (!Paths.get(writePathName).toFile().exists()) {
-                        fileDoesNotExistPacketBuilder(writePathName, clientAddress, clientPort);
+                        fileDoesNotExistPacketBuilder(writePathName, clientAddress, clientPort, requestId);
                         break;
-                    } else{
+                    } else {
 
                         try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
                             long fileLength = file.length();
@@ -194,9 +196,9 @@ public class Server {
                                 notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
                             }
                         }
+
                     }
                     break;
-
                 case LISTEN:
                     System.out.println("Server received listen request");
                     Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
@@ -225,7 +227,7 @@ public class Server {
                     String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
 
                     if (!Paths.get(attrPathName).toFile().exists()) {
-                        responseString = "FAIL - File does not exist.";
+                        fileDoesNotExistPacketBuilder(attrPathName, clientAddress, clientPort, requestId);
                         break;
                     }
                     // return last modified time
@@ -270,7 +272,9 @@ public class Server {
             DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
             socket.send(responsePacket);
             addProcessedRequest(requestId, responsePacket);
+
             System.out.println("Server responded with: " + responseString);
+
         }
 
         socket.close();
