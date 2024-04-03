@@ -230,7 +230,7 @@ public class Server {
                     String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
 
                     if (!Paths.get(attrPathName).toFile().exists()) {
-                        responseString = "-1";
+                        responseString = "FAIL - File does not exist.";
                         break;
                     }
                     // return last modified time    

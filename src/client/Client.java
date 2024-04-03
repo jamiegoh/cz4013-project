@@ -76,8 +76,9 @@ public class Client {
                 String attrReceived = new String(attrResponsePacket.getData(), 0, attrResponsePacket.getLength());
 
                 // if file does not exist
-                if (attrReceived.equals("-1")) {
-                    System.out.println("File does not exist");
+                if (Objects.equals(attrReceived.substring(0, 4), "FAIL")) {
+                    System.out.println("File does not exist in server");
+                    return attrReceived;
                 }
                 else{
                     // get last modified time of file
