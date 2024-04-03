@@ -9,13 +9,17 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Server {
     private DatagramSocket socket;
@@ -59,7 +63,30 @@ public class Server {
             e.printStackTrace();
         }
     }
-
+    public String searchForSubString(Path path, String searchString) {
+        //Returns the first file that contains the substring
+        String result = "FAIL - Substring not found in any files.";
+        try {
+            List<Path> paths = Files.walk(path)
+                    .filter(Files::isRegularFile)
+                    .toList();
+            for (Path filePath : paths) {
+                try {
+                    String content = Files.readString(filePath);
+                    if (content.contains(searchString)) {
+                        System.out.println("Found substring in file: " + filePath);
+                        result = "Found " + searchString  + " in file: " + filePath;
+                        break;
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error reading file: " + filePath);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error walking the file tree: " + path);
+        }
+        return result;
+    }
 
     public void run() throws IOException {
         running = true;
@@ -265,23 +292,36 @@ public class Server {
                     System.out.println("Server received create request: " + createRequestArgs);
                     break;
 
-                default:
-                    System.out.println("Invalid request type: " + receivedRequestType);
+                case SEARCH:
+                    //search based on substring
+                    Map<String, Object> searchRequestArgs = new SearchRequest(requestPacket, requestId).deserialize();
+                    String searchString = (String) searchRequestArgs.get("searchQuery");
+                    String searchPathName = currentDir + "/src/data/";
+
+                    System.out.println("Searching for substring: " + searchString);
+                    System.out.println("Current directory: " + currentDir);
+
+                    // search for files in data directory
+                    responseString = searchForSubString(Paths.get(searchPathName), searchString);
                     break;
+
+                        default:
+                            System.out.println("Invalid request type: " + receivedRequestType);
+                            break;
+                    }
+
+                    responseBuf = responseString.getBytes();
+                    DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+                    socket.send(responsePacket);
+                    addProcessedRequest(requestId, responsePacket);
+
+                    System.out.println("Server responded with: " + responseString);
+
             }
 
-            responseBuf = responseString.getBytes();
-            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-            socket.send(responsePacket);
-            addProcessedRequest(requestId, responsePacket);
-
-            System.out.println("Server responded with: " + responseString);
-
+            socket.close();
+            System.out.println("Server has stopped.");
         }
 
-        socket.close();
-        System.out.println("Server has stopped.");
+
     }
-
-
-}

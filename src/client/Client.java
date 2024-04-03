@@ -330,6 +330,10 @@ public class Client {
                 byte[] createRequestBuf = new CreateRequest(pathname, requestId).serialize();
                 requestPacket = new DatagramPacket(createRequestBuf, createRequestBuf.length, serverAddress, serverPort);
                 break;
+            case SEARCH:
+                byte[] searchRequestBuf = new SearchRequest(pathname, requestId).serialize();
+                requestPacket = new DatagramPacket(searchRequestBuf, searchRequestBuf.length, serverAddress, clientPort);
+                break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
         }
