@@ -44,7 +44,7 @@ public class Server {
 
     public void run() throws IOException {
         running = true;
-        System.out.println("Server is running on port " + port);
+        System.out.println("Server is running on port " + this.port);
 
         while (running) {
             // wait for client request
@@ -159,12 +159,14 @@ public class Server {
                 case LISTEN:
                     System.out.println("Server received listen request");
                     Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
-                    InetAddress serverAddress = (InetAddress) listenRequestArgs.get("serverAddress");
+                    String stringClientaddress = (String) listenRequestArgs.get("clientAddress");
+                    // Not sure if this works
+                    InetAddress clientAddress = InetAddress.getByName(stringClientaddress);
                     String pathname = (String) listenRequestArgs.get("pathname");
                     int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
 
 
-                    Subscriber subscriber = new Subscriber(address, port, pathname, monitorInterval, serverAddress, this.port);
+                    Subscriber subscriber = new Subscriber(address, port, pathname, monitorInterval, clientAddress, this.port);
 
                     Subscriber.addSubscriber(subscriber);
 
