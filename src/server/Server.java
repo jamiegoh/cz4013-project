@@ -60,14 +60,6 @@ public class Server {
         }
     }
 
-    public void fileDoesNotExistPacketBuilder(String pathname, InetAddress clientAddress, int clientPort, int requestId) throws IOException {
-        String responseString = "FAIL - File does not exist.";
-        responseBuf = responseString.getBytes();
-        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-        socket.send(responsePacket);
-        addProcessedRequest(requestId, responsePacket);
-
-    }
 
     public void run() throws IOException {
         running = true;
@@ -129,7 +121,7 @@ public class Server {
 
                     //Check if file exists before trying to read
                     if (!Paths.get(readPathName).toFile().exists()) {
-                        fileDoesNotExistPacketBuilder(readPathName, clientAddress, clientPort, requestId);
+                        responseString = "FAIL - File does not exist.";
                         break;
                     }
 
@@ -161,7 +153,7 @@ public class Server {
                     String writePathName = currentDir + "/src/data/" + filename;
 
                     if (!Paths.get(writePathName).toFile().exists()) {
-                        fileDoesNotExistPacketBuilder(writePathName, clientAddress, clientPort, requestId);
+                        responseString = "FAIL - File does not exist.";
                         break;
                     } else {
 
@@ -227,7 +219,7 @@ public class Server {
                     String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
 
                     if (!Paths.get(attrPathName).toFile().exists()) {
-                        fileDoesNotExistPacketBuilder(attrPathName, clientAddress, clientPort, requestId);
+                        responseString = "FAIL - File does not exist.";
                         break;
                     }
                     // return last modified time
