@@ -122,10 +122,9 @@ public class Server {
 
                     try (RandomAccessFile file = new RandomAccessFile(readPathName, "r")) {
                         if (readOffset >= file.length()) {
-                            responseString = "Request Failed - Offset exceeds file length.";
+                            responseString = "FAIL - Offset exceeds file length.";
                             break;
-                        }
-                        else if (readOffset + readBytes > file.length()) {
+                        } else if (readOffset + readBytes > file.length()) {
                             readBytes = (int) (file.length() - readOffset);
                             System.out.println("Read bytes exceeds file length. Reading only " + readBytes + " bytes.");
                         }
@@ -151,41 +150,50 @@ public class Server {
 
                     String writePathName = currentDir + "/src/data/" + filename;
 
-                    try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
-                        long fileLength = file.length();
-                        if (writeOffset < fileLength) {
-                            byte[] temp = new byte[(int) (fileLength - writeOffset)];
-                            file.seek(writeOffset);
-                            file.readFully(temp);
-                            file.seek(writeOffset);
-                            file.write(data.getBytes(StandardCharsets.UTF_8));
-                            file.write(temp);
-                        } else {
-                            file.seek(fileLength);
-                            file.write(data.getBytes(StandardCharsets.UTF_8));
+                    if (!Paths.get(writePathName).toFile().exists()) {
+                        responseString = "FAIL - File does not exist.";
+                        responseBuf = responseString.getBytes();
+                        DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+                        socket.send(updateResponse);
+                        break;
+                    } else {
+
+                        try (RandomAccessFile file = new RandomAccessFile(writePathName, "rw")) {
+                            long fileLength = file.length();
+                            if (writeOffset < fileLength) {
+                                byte[] temp = new byte[(int) (fileLength - writeOffset)];
+                                file.seek(writeOffset);
+                                file.readFully(temp);
+                                file.seek(writeOffset);
+                                file.write(data.getBytes(StandardCharsets.UTF_8));
+                                file.write(temp);
+                            } else {
+                                file.seek(fileLength);
+                                file.write(data.getBytes(StandardCharsets.UTF_8));
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
 
-                    System.out.println("Server received insert request: " + insertRequestArgs);
+                        System.out.println("Server received insert request: " + insertRequestArgs);
 
-                    responseBuf = responseString.getBytes();
-                    DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+                        responseBuf = responseString.getBytes();
+                        DatagramPacket updateResponse = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
 
 
-                    List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
-                    System.out.println("Subscribers: " + subscribers);
-                    if (subscribers != null) {
-                        for (Subscriber subscriber : subscribers) {
-                            System.out.println("Currently notifying subscriber: " + subscriber);
+                        List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
+                        System.out.println("Subscribers: " + subscribers);
+                        if (subscribers != null) {
+                            for (Subscriber subscriber : subscribers) {
+                                System.out.println("Currently notifying subscriber: " + subscriber);
 
-                            notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
+                                notifySingleSubscriber(subscriber.getClientAddress(), subscriber.getClientPort(), writePathName);
+                            }
                         }
-                    }
-                    socket.send(updateResponse);
+                        socket.send(updateResponse);
 
-                    break;
+                        break;
+                    }
                 case LISTEN:
                     System.out.println("Server received listen request");
                     Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
@@ -202,7 +210,6 @@ public class Server {
                     break;
 
                 case STOP:
-                    //TODO: remove all subscribers
                     running = false;
                     System.out.println("Server is stopping...");
                     responseString = "SERVER IS STOPPING!";
