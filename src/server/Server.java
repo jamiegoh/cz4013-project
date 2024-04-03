@@ -210,10 +210,13 @@ public class Server {
                     }
                     // return last modified time    
                     long lastModified = Paths.get(attrPathName).toFile().lastModified();
+                    responseString = Long.toString(lastModified);
+
                     Instant instant = Instant.ofEpochMilli(lastModified);
-                    responseString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                             .withZone(ZoneId.systemDefault())
                             .format(instant);
+                    System.out.println("Last modified time: " + displayString);
                     System.out.println("Server received attr request: " + attrRequestArgs);
                     break;
 
