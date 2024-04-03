@@ -180,6 +180,23 @@ public class Server {
                     System.out.println("Server is stopping...");
                     responseString = "SERVER IS STOPPING!";
                     break;
+
+                case ATTR:
+                    // get file attributes
+                    Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
+                    String attrFileName = (String) attrRequestArgs.get("pathname");
+                    String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
+                    // if file does not exist, return -1
+                    if (!Paths.get(attrPathName).toFile().exists()) {
+                        responseString = "-1";
+                        break;
+                    }
+                    // return last modified time    
+                    long lastModified = Paths.get(attrPathName).toFile().lastModified();
+                    responseString = Long.toString(lastModified);
+                    System.out.println("Server received attr request: " + attrRequestArgs);
+                    break;
+
                 default:
                     System.out.println("Invalid request type: " + receivedRequestType);
                     break;

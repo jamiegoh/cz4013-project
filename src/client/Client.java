@@ -46,13 +46,41 @@ public class Client {
         String[] parts = input.split(",");
         String pathname = requestType == RequestType.STOP ? null : parts[0];
 
-        String received;
+        String received = null;
         // Check if cache is valid
-        if (requestType == RequestType.READ && validateCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]))) {
-            System.out.println("Cache is valid, returning cached data");
-            received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+        if (requestType == RequestType.READ) {
+            // get smallest last validated time
+            long smallestTime = getSmallestLastValidatedTime(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+
+            // if cache is valid
+            if (System.currentTimeMillis() - smallestTime < FRESHNESS_TIME) {
+                received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+            } else {
+                // send request to server to getattr of file
+                socket.send(processRequest(RequestType.ATTR, parts, pathname));
+                // receive response
+                DatagramPacket attrResponsePacket = receiveResponse(RequestType.ATTR, parts, pathname);
+                String attrReceived = new String(attrResponsePacket.getData(), 0, attrResponsePacket.getLength());
+
+                // if file does not exist
+                if (attrReceived.equals("-1")) {
+                    System.out.println("File does not exist");
+                }
+                else{
+                    // get last modified time of file
+                    long lastModifiedTime = Long.parseLong(attrReceived);
+                    // if last modified time of file is greater than smallestTime, then cache is invalid
+                    if (lastModifiedTime > smallestTime) {
+                        received = null;
+                    } else {
+                        // cache is valid
+                        received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+                    }
+                }
+            }
         }
-        else{
+        
+        if (received == null) {
             // send request
             socket.send(processRequest(requestType, parts, pathname));
             // receive response
@@ -155,12 +183,17 @@ public class Client {
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
+                // todo: are we passing server own address here?
                 byte[] listenRequestBuf = new ListenRequest(address, pathname, monitorInterval, requestId).serialize();
                 requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, address, port);
                 break;
             case STOP:
                 byte[] stopRequestBuf = new StopRequest(requestId).serialize();
                 requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, address, port);
+                break;
+            case ATTR:
+                byte[] attrRequestBuf = new AttrRequest(pathname, requestId).serialize();
+                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, address, port);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
@@ -189,6 +222,21 @@ public class Client {
             }
         }
         return true;
+    }
+
+    // get smallest last validated time
+    public long getSmallestLastValidatedTime(String pathname, int offset, int readBytes) {
+        long smallestTime = Long.MAX_VALUE;
+        if (!fileLastValidatedTime.containsKey(pathname)) {
+            return 0;
+        }
+        Map<Integer, Long> lastValidatedTime = fileLastValidatedTime.get(pathname);
+        for (int i = offset; i < offset + readBytes; i++) {
+            if (lastValidatedTime.containsKey(i) && lastValidatedTime.get(i) < smallestTime) {
+                smallestTime = lastValidatedTime.get(i);
+            }
+        }
+        return smallestTime;
     }
 
     // store file content in cache
