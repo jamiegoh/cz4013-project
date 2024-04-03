@@ -29,7 +29,9 @@ public class Client {
     // Structure to store file content, considering pathname, byte in each entry
     private static Map<String, byte[]> fileCacheArray = new HashMap<>();
     // Structure to store cache entry last validated time
-    private static Map<String, Map<Integer, Long>> fileLastValidatedTime = new HashMap<>();
+    private static Map<String, Map<Integer, Long>> entryLastValidatedTime = new HashMap<>();
+    // Structure to store local file last modified time
+    private static Map<String, Long> fileLastModifiedTime = new HashMap<>();
 
     
 
@@ -50,13 +52,16 @@ public class Client {
         String pathname = requestType == RequestType.STOP ? null : parts[0];
 
         String received = null;
+
         // Check if cache is valid
         if (requestType == RequestType.READ) {
             // get smallest last validated time
             long smallestTime = getSmallestLastValidatedTime(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+            System.out.println("Local validated time: " + smallestTime);
 
             // if cache is valid
             if (System.currentTimeMillis() - smallestTime < FRESHNESS_TIME) {
+                System.out.println("Cache is fresh");
                 received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
             } else {
                 // send request to server to getattr of file
@@ -71,11 +76,15 @@ public class Client {
                 }
                 else{
                     // get last modified time of file
-                    long lastModifiedTime = Long.parseLong(attrReceived);
+                    long serverLastModifiedTime = Long.parseLong(attrReceived);
+                    System.out.println("File last modified time: " + serverLastModifiedTime);
                     // if last modified time of file is greater than smallestTime, then cache is invalid
-                    if (lastModifiedTime > smallestTime) {
+                    if (serverLastModifiedTime > getLocalLastModifiedTime(pathname)) {
+                        System.out.println("Cache is invalid, updating cache...");
+                        fileLastModifiedTime.put(pathname, serverLastModifiedTime);
                         received = null;
                     } else {
+                        System.out.println("Cache is not changed in server");
                         // cache is valid
                         received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
                     }
@@ -209,14 +218,14 @@ public class Client {
 
     // validate cache freshness
     public boolean validateCache(String pathname, int offset, int readBytes) {
-        if (!fileLastValidatedTime.containsKey(pathname)) {
+        if (!entryLastValidatedTime.containsKey(pathname)) {
             return false;
         }
 
         // current time
         long currentTime = System.currentTimeMillis();
         
-        Map<Integer, Long> lastValidatedTime = fileLastValidatedTime.get(pathname);
+        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
         for (int i = offset; i < offset + readBytes; i++) {
             if (!lastValidatedTime.containsKey(i)) {
                 return false;
@@ -231,16 +240,24 @@ public class Client {
     // get smallest last validated time
     public long getSmallestLastValidatedTime(String pathname, int offset, int readBytes) {
         long smallestTime = Long.MAX_VALUE;
-        if (!fileLastValidatedTime.containsKey(pathname)) {
+        if (!entryLastValidatedTime.containsKey(pathname)) {
             return 0;
         }
-        Map<Integer, Long> lastValidatedTime = fileLastValidatedTime.get(pathname);
+        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
         for (int i = offset; i < offset + readBytes; i++) {
             if (lastValidatedTime.containsKey(i) && lastValidatedTime.get(i) < smallestTime) {
                 smallestTime = lastValidatedTime.get(i);
             }
         }
         return smallestTime;
+    }
+
+    // get last modified time of file
+    public long getLocalLastModifiedTime(String pathname) {
+        if (!fileLastModifiedTime.containsKey(pathname)) {
+            return 0;
+        }
+        return fileLastModifiedTime.get(pathname);
     }
 
     // store file content in cache
@@ -251,10 +268,10 @@ public class Client {
         }
         byte[] fileContent = fileCacheArray.get(pathname);
 
-        if (!fileLastValidatedTime.containsKey(pathname)) {
-            fileLastValidatedTime.put(pathname, new HashMap<>());
+        if (!entryLastValidatedTime.containsKey(pathname)) {
+            entryLastValidatedTime.put(pathname, new HashMap<>());
         }
-        Map<Integer, Long> lastValidatedTime = fileLastValidatedTime.get(pathname);
+        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
 
         long currentTime = System.currentTimeMillis();        
         // store data in cache and update last validated time
@@ -264,7 +281,7 @@ public class Client {
         }
 
         fileCacheArray.put(pathname, fileContent);
-        fileLastValidatedTime.put(pathname, lastValidatedTime);
+        entryLastValidatedTime.put(pathname, lastValidatedTime);
     }
 
     // get file content from cache
