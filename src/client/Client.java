@@ -27,11 +27,11 @@ public class Client {
     // Freshness time
     private static final long FRESHNESS_TIME = 1000;
     // Structure to store file content, considering pathname, byte in each entry
-    private static Map<String, byte[]> fileCacheArray = new HashMap<>();
+    private static HashMap<String, byte[]> fileCacheArray = new HashMap<>();
     // Structure to store cache entry last validated time
-    private static Map<String, Map<Integer, Long>> entryLastValidatedTime = new HashMap<>();
+    private static HashMap<String, HashMap<Integer, Long>> entryLastValidatedTime = new HashMap<>();
     // Structure to store local file last modified time
-    private static Map<String, Map<Integer, Long>> entryLastModifiedTime = new HashMap<>();
+    private static HashMap<String, HashMap<Integer, Long>> entryLastModifiedTime = new HashMap<>();
 
     
 
@@ -276,9 +276,10 @@ public class Client {
     // update last validated time
     public void updateLastValidatedTime(String pathname, int offset, int readBytes) {
         if (!entryLastValidatedTime.containsKey(pathname)) {
-            entryLastModifiedTime.put(pathname, new HashMap<>());
+            entryLastValidatedTime.put(pathname, new HashMap<>());
         }
-        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
+        HashMap<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
+
         long currentTime = System.currentTimeMillis();
         for (int i = offset; i < offset + readBytes; i++) {
             lastValidatedTime.put(i, currentTime);
@@ -291,7 +292,7 @@ public class Client {
         if (!entryLastModifiedTime.containsKey(pathname)) {
             entryLastModifiedTime.put(pathname, new HashMap<>());
         }
-        Map<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
+        HashMap<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
         for (int i = offset; i < offset + readBytes; i++) {
             lastModifiedTime.put(i, serverLastModifiedTime);
         }

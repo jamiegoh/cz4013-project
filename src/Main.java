@@ -117,11 +117,9 @@ public class Main {
                     }
 
                     client.makeRequest(requestType, input);
-
-                    scanner.close();   
-
+                 
                 }
-
+                scanner.close();
                 client.close();
             } catch (Exception e) {
                 e.printStackTrace();
