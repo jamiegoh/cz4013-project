@@ -22,10 +22,11 @@ public class Client {
     private InetAddress serverAddress;
     private String clientAddress;
     private int clientPort;
+    
 
     // Cache of responses
-    // Freshness time
-    private static final long FRESHNESS_TIME = 1000;
+    // Freshness time (in milliseconds)
+    private int freshnessInterval;
     // Structure to store file content, considering pathname, byte in each entry
     private static HashMap<String, byte[]> fileCacheArray = new HashMap<>();
     // Structure to store cache entry last validated time
@@ -36,12 +37,13 @@ public class Client {
     
 
     // Constructor
-    public Client(String serverAddress, int port, InvocationSemantics invocationSemantics) throws UnknownHostException, SocketException {
-//        address = InetAddress.getByName("localhost");
+    public Client(String serverAddress, int port, InvocationSemantics invocationSemantics, int freshnessInterval) throws UnknownHostException, SocketException {
         this.serverAddress = InetAddress.getByName(serverAddress);
         this.clientAddress = InetAddress.getLocalHost().getHostAddress();
         this.clientPort = port;
         this.invocationSemantics = invocationSemantics;
+        this.freshnessInterval = freshnessInterval;
+
         socket = new DatagramSocket();
     }
 
@@ -60,12 +62,8 @@ public class Client {
             int offset = Integer.parseInt(parts[1]);
             int readBytes = Integer.parseInt(parts[2]);
 
-            // get smallest last validated time
-            long smallestValidatedTime = getSmallestLastValidatedTime(pathname, offset, readBytes);
-            System.out.println("Local validated time: " + smallestValidatedTime);
-
             // if cache is valid
-            if (System.currentTimeMillis() - smallestValidatedTime < FRESHNESS_TIME) {
+            if (validateCache(pathname, offset, readBytes)) {
                 System.out.println("Cache is fresh");
                 received = new String(getFileCache(pathname, offset, readBytes));
             } else {
@@ -236,23 +234,17 @@ public class Client {
 
     // validate cache freshness
     public boolean validateCache(String pathname, int offset, int readBytes) {
-        if (!entryLastValidatedTime.containsKey(pathname)) {
+
+        // get smallest last validated time
+        long smallestValidatedTime = getSmallestLastValidatedTime(pathname, offset, readBytes);
+        System.out.println("Local validated time: " + smallestValidatedTime);
+
+        if (System.currentTimeMillis() - smallestValidatedTime < freshnessInterval) {
+            return true;
+        }
+        else {
             return false;
         }
-
-        // current time
-        long currentTime = System.currentTimeMillis();
-        
-        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
-        for (int i = offset; i < offset + readBytes; i++) {
-            if (!lastValidatedTime.containsKey(i)) {
-                return false;
-            }
-            if (currentTime - lastValidatedTime.get(i) >= FRESHNESS_TIME) {
-                return false;
-            }
-        }
-        return true;
     }
 
     // get smallest last validated time

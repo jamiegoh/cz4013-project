@@ -20,12 +20,27 @@ public class Main {
                 return false;
         }
     }
+
+    // print usage
+    public static void printUsage() {
+        System.out.println("Usage: java Main --server <server-port> <invocation-semantics> or java Main --client <server-address> <server-port> <invocation-semantics> <freshness-interval>");
+        System.out.println("Mandatory arguments:");
+        System.out.println("<server-address> - IP address of server");
+        System.out.println("<server-port> - Port number to run server on");
+        System.out.println("Optional arguments:");
+        System.out.println("<invocation-semantics> - AT_LEAST_ONCE or AT_MOST_ONCE");
+        System.out.println("<freshness-interval> - Time in milliseconds to wait before checking for file changes in server");
+    }
+
     public static void main(@org.jetbrains.annotations.NotNull String @NotNull [] args) {
         System.out.println("Hello world!");
 
+        printUsage();
+
+
         // if args is not of length 2, print error message
         if (!(args.length == 2 || args.length == 3)) {
-            System.out.println("ERROR - Usage: java Main --server <port> or java Main --client <server-add> <port>");
+            printUsage();
             return;
         }
 
@@ -46,9 +61,10 @@ public class Main {
             String serverAddress = args[1];
             int port = Integer.parseInt(args[2]);
             InvocationSemantics invocationSemantics = args.length == 4 ? InvocationSemantics.valueOf(args[3]) : InvocationSemantics.AT_LEAST_ONCE;
+            int freshnessInterval = args.length == 5 ? Integer.parseInt(args[4]) : 0;
 
             try {
-                client.Client client = new client.Client(serverAddress, port, invocationSemantics);
+                client.Client client = new client.Client(serverAddress, port, invocationSemantics, freshnessInterval);
                 Scanner scanner = new Scanner(System.in);
                 boolean running = true;
 
