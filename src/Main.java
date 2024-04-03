@@ -112,7 +112,7 @@ public class Main {
                             running = false;
                             continue;
                         default:
-                            System.out.println("Invalid request type. Use READ, INSERT, LISTEN, or STOP");
+                            System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR or STOP");
                             continue;
                     }
 
