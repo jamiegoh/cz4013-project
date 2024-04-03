@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Server {
@@ -18,11 +19,27 @@ public class Server {
     private byte[] tempRequestBuf = new byte[1024];
     private byte[] responseBuf;
 
+    // history of processed requests, maintained in map for AT_MOST_ONCE semantics
+    // request id, DatagramPacket map
+    private static Map<Integer, DatagramPacket> processedRequests = new HashMap<>();
+
+
+    private InvocationSemantics invocationSemantics;
+
     private int port;
 
-    public Server(int port) throws SocketException {
+    public Server(int port, InvocationSemantics invocationSemantics) throws SocketException {
         this.port = port;
+        this.invocationSemantics = invocationSemantics;
         socket = new DatagramSocket(this.port);
+    }
+
+    public boolean isProcessed(int requestId) {
+        return processedRequests.containsKey(requestId);
+    }
+
+    public void addProcessedRequest(int requestId, DatagramPacket requestPacket) {
+        processedRequests.put(requestId, requestPacket);
     }
 
     public void run() throws IOException {
@@ -46,6 +63,21 @@ public class Server {
             requestPacket = new DatagramPacket(requestBuf, requestBuf.length, address, port);
 
             RequestType receivedRequestType = new Request(requestPacket).getRequestType();
+            int requestId = new Request(requestPacket).getRequestId();
+
+            // Check invocation semantics
+            if (invocationSemantics == InvocationSemantics.AT_MOST_ONCE) {
+                // Check if request has been processed before
+                if (isProcessed(requestId)) {
+                    System.out.println("Request has already been processed.");
+                    // send response
+                    System.out.println("Sending saved response to client...");
+                    DatagramPacket responsePacket = processedRequests.get(requestId);
+                    socket.send(responsePacket);
+                    continue;
+                }
+            }
+            // else, AT_LEAST_ONCE, so no need to check if request has been processed before
 
 
             String responseString = "ACK";
@@ -54,7 +86,7 @@ public class Server {
             // switch on request type
             switch (receivedRequestType) {
                 case READ:
-                    Map<String, Object> readRequestArgs = new ReadRequest(requestPacket).deserialize();
+                    Map<String, Object> readRequestArgs = new ReadRequest(requestPacket, requestId).deserialize();
                     String readFileName = (String) readRequestArgs.get("pathname");
                     int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
@@ -90,7 +122,7 @@ public class Server {
 
                 case INSERT:
                     //TODO: check if file exists
-                    Map<String, Object> insertRequestArgs = new InsertRequest(requestPacket).deserialize();
+                    Map<String, Object> insertRequestArgs = new InsertRequest(requestPacket, requestId).deserialize();
                     String filename = (String) insertRequestArgs.get("pathname");
                     int writeOffset = (int) insertRequestArgs.get("offset");
                     String data = (String) insertRequestArgs.get("data");
@@ -126,7 +158,7 @@ public class Server {
                     break;
                 case LISTEN:
                     System.out.println("Server received listen request");
-                    Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket).deserialize();
+                    Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
                     InetAddress serverAddress = (InetAddress) listenRequestArgs.get("serverAddress");
                     String pathname = (String) listenRequestArgs.get("pathname");
                     int monitorInterval = (int) listenRequestArgs.get("monitorInterval");
@@ -148,6 +180,23 @@ public class Server {
                     System.out.println("Server is stopping...");
                     responseString = "SERVER IS STOPPING!";
                     break;
+
+                case ATTR:
+                    // get file attributes
+                    Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
+                    String attrFileName = (String) attrRequestArgs.get("pathname");
+                    String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
+                    // if file does not exist, return -1
+                    if (!Paths.get(attrPathName).toFile().exists()) {
+                        responseString = "-1";
+                        break;
+                    }
+                    // return last modified time    
+                    long lastModified = Paths.get(attrPathName).toFile().lastModified();
+                    responseString = Long.toString(lastModified);
+                    System.out.println("Server received attr request: " + attrRequestArgs);
+                    break;
+
                 default:
                     System.out.println("Invalid request type: " + receivedRequestType);
                     break;
@@ -157,6 +206,7 @@ public class Server {
                 responseBuf = responseString.getBytes();
                 DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, address, port);
                 socket.send(responsePacket);
+                addProcessedRequest(requestId, responsePacket);
             }
 
                 System.out.println("Server responded with: " + responseString);
@@ -166,4 +216,6 @@ public class Server {
         socket.close();
         System.out.println("Server has stopped.");
     }
+
+
 }

@@ -1,7 +1,7 @@
 package utils;
 
 public enum RequestType {
-    READ("READ"), INSERT("INSERT"), LISTEN("LISTEN"), STOP("STOP");
+    READ("READ"), INSERT("INSERT"), LISTEN("LISTEN"), STOP("STOP"), ATTR("ATTR");
 
     private final String type;
 
