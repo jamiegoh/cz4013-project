@@ -8,34 +8,28 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Subscriber {
-    public static InetAddress address;
-    public static int port;
+    public InetAddress clientAddress;
+    public int clientPort;
     private String pathname;
 
     private int monitorInterval;
     private DatagramSocket socket;
-    private InetAddress serverAddress;
-    private int serverPort;
 
-    public Subscriber(InetAddress address, int port, String pathname, int monitorInterval, InetAddress serverAddress, int serverPort) throws SocketException {
-        this.address = address;
-        this.port = port;
+    public Subscriber(InetAddress clientAddress, int clientPort, String pathname, int monitorInterval) throws SocketException {
+        this.clientAddress = clientAddress;
+        this.clientPort = clientPort;
         this.pathname = pathname;
         this.monitorInterval = monitorInterval; // in minutes
-        this.serverAddress = serverAddress;
-        this.serverPort = serverPort;
         socket = new DatagramSocket();
     }
 
     public Subscriber(DatagramPacket packet) throws UnknownHostException, SocketException {
         String serialStr = new String(packet.getData(), 0, packet.getLength());
         String[] parts = serialStr.split(",");
-        this.address = InetAddress.getByName(parts[1]);
-        this.port = Integer.parseInt(parts[2]);
+        this.clientAddress = InetAddress.getByName(parts[1]);
+        this.clientPort = Integer.parseInt(parts[2]);
         this.pathname = parts[3];
         this.monitorInterval = Integer.parseInt(parts[4]);
-        this.serverAddress = InetAddress.getByName(parts[5]);
-        this.serverPort = Integer.parseInt(parts[6]);
         socket = new DatagramSocket();
 
     }
@@ -53,7 +47,7 @@ public class Subscriber {
     static String currentDir = Paths.get("").toAbsolutePath().toString();
 
     public static void addSubscriber(Subscriber subscriber) {
-        System.out.println("Subscriber has been added for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.address + ":" + subscriber.port);
+        System.out.println("Subscriber has been added for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
         String key = currentDir + "/src/data/" + subscriber.getPathname();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).add(subscriber);
@@ -74,11 +68,11 @@ public class Subscriber {
                     throw new RuntimeException(e);
                 }
             }
-        }, subscriber.getMonitorInterval() * 60 *  1000); // Convert monitor interval to ms
+        }, subscriber.getMonitorInterval() * 60 * 1000); // Convert monitor interval to ms
     }
 
     public static void removeSubscriber(Subscriber subscriber) throws IOException {
-        System.out.println("Subscriber has been removed for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.address + ":" + subscriber.port);
+        System.out.println("Subscriber has been removed for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
         String key = currentDir + "/src/data/" + subscriber.getPathname();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).remove(subscriber);
@@ -88,30 +82,43 @@ public class Subscriber {
         }
         String message = "INTERVAL ENDED";
         byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-        DatagramPacket packet = new DatagramPacket(messageBytes, messageBytes.length, subscriber.address, subscriber.port);
+        DatagramPacket packet = new DatagramPacket(messageBytes, messageBytes.length, subscriber.clientAddress, subscriber.clientPort);
         subscriber.socket.send(packet);
 
     }
 
-    public static void notifySubscribers(String pathname) {
-        System.out.println("subscriber for " + pathname + " has been notified");
-        String key = currentDir + "/src/data/" + pathname;
-        if (subscribersMap.containsKey(key)) {
-            try {
-                for (Subscriber subscriber : subscribersMap.get(key)) {
-                    // todo: put 0 as request id for now, dont think we should use ReadRequst here
-                    ReadRequest readRequest = new ReadRequest(pathname, 0, (int) Files.size(Paths.get(key)), ReadType.SUBSCRIBER, 0); 
-                    byte[] requestBytes = readRequest.serialize();
+//    public static void notifySubscribers(String pathname) {
+//        System.out.println("subscriber for " + pathname + " has been notified");
+//        String key = currentDir + "/src/data/" + pathname;
+//        if (subscribersMap.containsKey(key)) {
+//            try {
+//                for (Subscriber subscriber : subscribersMap.get(key)) {
+//                    // todo: put 0 as request id for now, dont think we should use ReadRequst here
+//
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
-                    DatagramPacket packet = new DatagramPacket(requestBytes, requestBytes.length, subscriber.serverAddress, subscriber.serverPort);
-                    subscriber.socket.send(packet);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+    public InetAddress getClientAddress() {
+        return clientAddress;
     }
 
-    
+    public int getClientPort() {
+        return clientPort;
+    }
+
+    public static List<Subscriber> getSubscribers(String pathname) {
+        String key = pathname;
+        System.out.println("Subscriber map currently contains: " + subscribersMap);
+        System.out.println("In get subscribers, key is " + key);
+        if (subscribersMap.containsKey(key)) {
+            return subscribersMap.get(key);
+        }
+        return null;
+    }
+
 
 }

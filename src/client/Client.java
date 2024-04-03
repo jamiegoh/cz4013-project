@@ -20,7 +20,7 @@ public class Client {
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private String clientAddress;
-    private int port;
+    private int clientPort;
 
     // Cache of responses
     // Freshness time
@@ -37,7 +37,7 @@ public class Client {
 //        address = InetAddress.getByName("localhost");
         this.serverAddress = InetAddress.getByName(serverAddress);
         this.clientAddress = InetAddress.getLocalHost().getHostAddress();
-        this.port = port;
+        this.clientPort = port;
         this.invocationSemantics = invocationSemantics;
         socket = new DatagramSocket();
     }
@@ -98,10 +98,10 @@ public class Client {
         }
 
 
-        if(requestType == RequestType.INSERT && received.equals("ACK")) {
-            System.out.println("notify subscribers w/ pathname " + pathname);
-            Subscriber.notifySubscribers(pathname);
-        }
+//        if(requestType == RequestType.INSERT && received.equals("ACK")) {
+//            System.out.println("notify subscribers w/ pathname " + pathname);
+//            Subscriber.notifySubscribers(pathname);
+//        }
 
         System.out.println("Client received data: " + received);
 
@@ -115,6 +115,7 @@ public class Client {
         // Listen case
         if (requestType == RequestType.LISTEN) {
             boolean running = true;
+            socket.setSoTimeout(0);
             while (running) {
                 byte[] listenResponseBuf = new byte[1024];
                 DatagramPacket listenResponsePacket = new DatagramPacket(listenResponseBuf, listenResponseBuf.length);
@@ -173,29 +174,29 @@ public class Client {
                 //TODO: handle if offset exceeds file size
                 int readOffset = Integer.parseInt(parts[1]);
                 int readBytes = Integer.parseInt(parts[2]);
-                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, ReadType.NORMAL, requestId).serialize();
-                requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, serverAddress, port);
+                byte[] readRequestBuf = new ReadRequest(pathname, readOffset, readBytes, requestId).serialize();
+                requestPacket = new DatagramPacket(readRequestBuf, readRequestBuf.length, serverAddress, clientPort);
                 break;
             case INSERT:
                 int writeOffset = Integer.parseInt(parts[1]);
                 String data = parts[2];
                 byte[] insertRequestBuf = new InsertRequest(pathname, writeOffset, data, requestId).serialize();
-                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, serverAddress, port);
+                requestPacket = new DatagramPacket(insertRequestBuf, insertRequestBuf.length, serverAddress, clientPort);
                 // todo: should we cache the data here?
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
                 // todo: are we passing server own address here?
-                byte[] listenRequestBuf = new ListenRequest(clientAddress, pathname, monitorInterval, requestId).serialize();
-                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, serverAddress, port);
+                byte[] listenRequestBuf = new ListenRequest(pathname, monitorInterval, requestId).serialize();
+                requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, serverAddress, clientPort);
                 break;
             case STOP:
                 byte[] stopRequestBuf = new StopRequest(requestId).serialize();
-                requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, serverAddress, port);
+                requestPacket = new DatagramPacket(stopRequestBuf, stopRequestBuf.length, serverAddress, clientPort);
                 break;
             case ATTR:
                 byte[] attrRequestBuf = new AttrRequest(pathname, requestId).serialize();
-                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, serverAddress, port);
+                requestPacket = new DatagramPacket(attrRequestBuf, attrRequestBuf.length, serverAddress, clientPort);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);

@@ -9,15 +9,13 @@ public class ReadRequest extends Request {
     private String pathname;
     private int offset;
     private int readBytes;
-    private ReadType type;
 
     // Constructor for client 
-    public ReadRequest(String pathname, int offset, int readBytes, ReadType type, int requestId) {
+    public ReadRequest(String pathname, int offset, int readBytes, int requestId) {
         super(RequestType.READ, requestId);
         this.pathname = pathname;
         this.offset = offset;
         this.readBytes = readBytes;
-        this.type = type; //subscriber update read or regular read
     }
 
     // Constructor for server
@@ -29,11 +27,10 @@ public class ReadRequest extends Request {
         this.pathname = parts[2];
         this.offset = Integer.parseInt(parts[3]);
         this.readBytes = Integer.parseInt(parts[4]);
-        this.type = ReadType.valueOf(parts[5].toUpperCase());
     }
 
     public byte[] serialize() {
-        return (getRequestType().getType() + "," + getRequestId() + "," + pathname + "," + offset + "," + readBytes + "," + type).getBytes(StandardCharsets.UTF_8);
+        return (getRequestType().getType() + "," + getRequestId() + "," + pathname + "," + offset + "," + readBytes ).getBytes(StandardCharsets.UTF_8);
     }
 
     public Map<String, Object> deserialize() {
@@ -43,7 +40,6 @@ public class ReadRequest extends Request {
         map.put("pathname", pathname);
         map.put("offset", offset);
         map.put("readBytes", readBytes);
-        map.put("type", type);
         return map;
     }
 }
