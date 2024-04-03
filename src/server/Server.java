@@ -47,7 +47,6 @@ public class Server {
     }
 
     public void notifySingleSubscriber(InetAddress clientAddress, int clientPort, String key) {
-        System.out.println("In notify single sub func");
         try (RandomAccessFile file = new RandomAccessFile(key, "r")) {
             byte[] readBuf = new byte[(int) file.length()];
             file.seek(0);
@@ -120,6 +119,15 @@ public class Server {
                     System.out.println("Current directory: " + currentDir);
                     System.out.println("Pathname: " + readPathName);
 
+                    //Check if file exists before trying to read
+                    if(!Paths.get(readPathName).toFile().exists()){
+                        responseString = "FAIL - File does not exist.";
+                        responseBuf = responseString.getBytes();
+                        DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+                        socket.send(responsePacket);
+                        break;
+                    }
+                    
                     try (RandomAccessFile file = new RandomAccessFile(readPathName, "r")) {
                         if (readOffset >= file.length()) {
                             responseString = "FAIL - Offset exceeds file length.";
