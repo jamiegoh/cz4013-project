@@ -10,6 +10,9 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -200,14 +203,17 @@ public class Server {
                     Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
                     String attrFileName = (String) attrRequestArgs.get("pathname");
                     String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
-                    // if file does not exist, return -1
+
                     if (!Paths.get(attrPathName).toFile().exists()) {
                         responseString = "-1";
                         break;
                     }
                     // return last modified time    
                     long lastModified = Paths.get(attrPathName).toFile().lastModified();
-                    responseString = Long.toString(lastModified);
+                    Instant instant = Instant.ofEpochMilli(lastModified);
+                    responseString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                            .withZone(ZoneId.systemDefault())
+                            .format(instant);
                     System.out.println("Server received attr request: " + attrRequestArgs);
                     break;
 
@@ -227,7 +233,7 @@ public class Server {
                     if (creation) {
                         responseString = "ACK - File Created";
                     } else {
-                        responseString = "ACK - File already existss";
+                        responseString = "ACK - File already exists";
                     }
                     System.out.println("Server received create request: " + createRequestArgs);
                     break;

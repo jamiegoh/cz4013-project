@@ -37,8 +37,8 @@ public class Main {
                 Scanner scanner = new Scanner(System.in);
                 boolean running = true;
 
-                while(running) {
-                    System.out.println("Which service would you like to perform (READ, INSERT, LISTEN, STOP)?");
+                while (running) {
+                    System.out.println("Which service would you like to perform (READ, INSERT, LISTEN, CREATE, ATTR, STOP)?");
                     String requestTypeStr = scanner.nextLine();
                     RequestType requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
 
@@ -53,7 +53,10 @@ public class Main {
                             System.out.println("Enter the pathname and monitor interval separated by commas:");
                             break;
                         case CREATE:
-                            System.out.println("Enter a pathname");
+                            System.out.println("Enter a pathname to create: e.g. /dir1/file1");
+                            break;
+                        case ATTR:
+                            System.out.println("Enter a pathname to get time last modified e.g. /dir1/file1");
                             break;
                         case STOP:
                             client.makeRequest(requestType, "");
