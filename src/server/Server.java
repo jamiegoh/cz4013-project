@@ -112,7 +112,7 @@ public class Server {
                     String readFileName = (String) readRequestArgs.get("pathname");
                     int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
-                    byte[] readBuf = new byte[readBytes];
+                    byte[] readBuf;
 
                     String readPathName = currentDir + "/src/data/" + readFileName; //won't work on Windows //todo: use path separator
 
@@ -131,16 +131,18 @@ public class Server {
                             break;
                         } else if (readOffset + readBytes > file.length()) {
                             readBytes = (int) (file.length() - readOffset);
+                            readBuf = new byte[readBytes];
                             System.out.println("Read bytes exceeds file length. Reading only " + readBytes + " bytes.");
+                        } else {
+                            readBuf = new byte[readBytes];
                         }
                         file.seek(readOffset);
                         file.read(readBuf, 0, readBytes);
+                        responseString = new String(readBuf, StandardCharsets.UTF_8);
+                        System.out.println("Server received read request: " + readRequestArgs);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    responseString = new String(readBuf, StandardCharsets.UTF_8);
-                    System.out.println("Server received read request: " + readRequestArgs);
-
                     break;
 
                 case INSERT:
