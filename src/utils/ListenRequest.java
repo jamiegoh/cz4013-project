@@ -28,7 +28,7 @@ public class ListenRequest extends Request{
     }
 
     public byte[] serialize() {
-        return (getRequestType().getType() + "," + getRequestId() + "," + currentAddress + "," + pathname + "," + monitorInterval).getBytes();
+        return (getRequestType().getType() + "," + getRequestId() + "," + clientAddress + "," + pathname + "," + monitorInterval).getBytes();
     }
 
     public Map<String,Object> deserialize() {
