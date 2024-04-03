@@ -62,7 +62,6 @@ public class Main {
                     }
                     catch (IllegalArgumentException e) {
                         System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR, or STOP");
-                        scanner.close();
                         continue;
                     }
 
