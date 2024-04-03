@@ -55,7 +55,16 @@ public class Main {
                 while (running) {
                     System.out.println("Which service would you like to perform (READ, INSERT, LISTEN, CREATE, ATTR, STOP)?");
                     String requestTypeStr = scanner.nextLine();
-                    RequestType requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
+
+                    RequestType requestType;
+                    try {
+                        requestType = RequestType.valueOf(requestTypeStr.toUpperCase());
+                    }
+                    catch (IllegalArgumentException e) {
+                        System.out.println("Invalid request type. Use READ, INSERT, LISTEN, CREATE, ATTR, or STOP");
+                        scanner.close();
+                        continue;
+                    }
 
                     String input;
                     switch (requestType) {
@@ -108,7 +117,9 @@ public class Main {
                             continue;
                     }
 
-                    String response = client.makeRequest(requestType, input);
+                    client.makeRequest(requestType, input);
+
+                    scanner.close();   
 
                 }
 
