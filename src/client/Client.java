@@ -31,7 +31,7 @@ public class Client {
     // Structure to store cache entry last validated time
     private static Map<String, Map<Integer, Long>> entryLastValidatedTime = new HashMap<>();
     // Structure to store local file last modified time
-    private static Map<String, Long> fileLastModifiedTime = new HashMap<>();
+    private static Map<String, Map<Integer, Long>> entryLastModifiedTime = new HashMap<>();
 
     
 
@@ -53,16 +53,21 @@ public class Client {
 
         String received = null;
 
+  
+
         // Check if cache is valid
         if (requestType == RequestType.READ) {
+            int offset = Integer.parseInt(parts[1]);
+            int readBytes = Integer.parseInt(parts[2]);
+
             // get smallest last validated time
-            long smallestTime = getSmallestLastValidatedTime(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
-            System.out.println("Local validated time: " + smallestTime);
+            long smallestValidatedTime = getSmallestLastValidatedTime(pathname, offset, readBytes);
+            System.out.println("Local validated time: " + smallestValidatedTime);
 
             // if cache is valid
-            if (System.currentTimeMillis() - smallestTime < FRESHNESS_TIME) {
+            if (System.currentTimeMillis() - smallestValidatedTime < FRESHNESS_TIME) {
                 System.out.println("Cache is fresh");
-                received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+                received = new String(getFileCache(pathname, offset, readBytes));
             } else {
                 // send request to server to getattr of file
                 socket.send(processRequest(RequestType.ATTR, parts, pathname));
@@ -77,35 +82,43 @@ public class Client {
                 else{
                     // get last modified time of file
                     long serverLastModifiedTime = Long.parseLong(attrReceived);
-                    System.out.println("File last modified time: " + serverLastModifiedTime);
+                    System.out.println("Server file last modified time: " + serverLastModifiedTime);
                     // if last modified time of file is greater than smallestTime, then cache is invalid
                     if (serverLastModifiedTime > getLocalLastModifiedTime(pathname)) {
                         System.out.println("Cache is invalid, updating cache...");
-                        fileLastModifiedTime.put(pathname, serverLastModifiedTime);
                         received = null;
                     } else {
                         System.out.println("Cache is not changed in server");
                         // cache is valid
-                        received = new String(getFileCache(pathname, Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+                        received = new String(getFileCache(pathname, offset, readBytes));
+                        // update last validated time
+                        updateLastValidatedTime(pathname, offset, readBytes);
+                    }
+                }
+                
+                if (received == null) {
+                    // send request
+                    socket.send(processRequest(requestType, parts, pathname));
+                    // receive response
+                    DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
+
+                    // If we get here, we have received a response
+                    received = new String(responsePacket.getData(), 0, responsePacket.getLength());
+
+                    // Caching the response
+                    if (requestType == RequestType.READ) {
+                        storeFileCache(pathname, offset, responsePacket.getData());
+                        // update last validated time
+                        updateLastValidatedTime(pathname, offset, readBytes);
+                        // update last modified time
+                        updateLastModifiedTime(pathname, offset, readBytes, Long.parseLong(attrReceived));
+
                     }
                 }
             }
         }
         
-        if (received == null) {
-            // send request
-            socket.send(processRequest(requestType, parts, pathname));
-            // receive response
-            DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
-            // If we get here, we have received a response
-            received = new String(responsePacket.getData(), 0, responsePacket.getLength());
-
-            // Caching the response
-            if (requestType == RequestType.READ) {
-                storeFileCache(pathname, Integer.parseInt(parts[1]), responsePacket.getData());
-            }
-        }
 
 
         System.out.println("Client received data: " + received);
@@ -247,10 +260,42 @@ public class Client {
 
     // get last modified time of file
     public long getLocalLastModifiedTime(String pathname) {
-        if (!fileLastModifiedTime.containsKey(pathname)) {
+        long smallestTime = Long.MAX_VALUE;
+        if (!entryLastModifiedTime.containsKey(pathname)) {
             return 0;
         }
-        return fileLastModifiedTime.get(pathname);
+        Map<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
+        for (int i : lastModifiedTime.keySet()) {
+            if (lastModifiedTime.get(i) < smallestTime) {
+                smallestTime = lastModifiedTime.get(i);
+            }
+        }
+        return smallestTime;
+    }
+
+    // update last validated time
+    public void updateLastValidatedTime(String pathname, int offset, int readBytes) {
+        if (!entryLastValidatedTime.containsKey(pathname)) {
+            entryLastModifiedTime.put(pathname, new HashMap<>());
+        }
+        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
+        long currentTime = System.currentTimeMillis();
+        for (int i = offset; i < offset + readBytes; i++) {
+            lastValidatedTime.put(i, currentTime);
+        }
+        entryLastValidatedTime.put(pathname, lastValidatedTime);
+    }
+
+    // update last modified time
+    public void updateLastModifiedTime(String pathname, int offset, int readBytes, long serverLastModifiedTime) {
+        if (!entryLastModifiedTime.containsKey(pathname)) {
+            entryLastModifiedTime.put(pathname, new HashMap<>());
+        }
+        Map<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
+        for (int i = offset; i < offset + readBytes; i++) {
+            lastModifiedTime.put(i, serverLastModifiedTime);
+        }
+        entryLastModifiedTime.put(pathname, lastModifiedTime);
     }
 
     // store file content in cache
@@ -261,20 +306,12 @@ public class Client {
         }
         byte[] fileContent = fileCacheArray.get(pathname);
 
-        if (!entryLastValidatedTime.containsKey(pathname)) {
-            entryLastValidatedTime.put(pathname, new HashMap<>());
-        }
-        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
-
-        long currentTime = System.currentTimeMillis();        
         // store data in cache and update last validated time
         for (int i = 0; i < data.length; i++) {
             fileContent[offset + i] = data[i];
-            lastValidatedTime.put(offset + i, currentTime);
         }
 
         fileCacheArray.put(pathname, fileContent);
-        entryLastValidatedTime.put(pathname, lastValidatedTime);
     }
 
     // get file content from cache
