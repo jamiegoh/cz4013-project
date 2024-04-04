@@ -39,7 +39,7 @@ public class Server {
     private InvocationSemantics invocationSemantics;
 
     // Simulation for invocation semantics
-    private boolean isSimulation = true;
+    private boolean isSimulation = false;
     
 
 
@@ -113,7 +113,7 @@ public class Server {
                     int readBytes = (int) readRequestArgs.get("readBytes");
                     byte[] readBuf;
 
-                    String readPathName = currentDir + "/src/data/" + readFileName; //won't work on Windows //todo: use path separator
+                    String readPathName = Paths.get(currentDir, "src", "data", readFileName).toString();
 
                     System.out.println("Current directory: " + currentDir);
                     System.out.println("Pathname: " + readPathName);
@@ -153,7 +153,7 @@ public class Server {
                     int writeOffset = (int) insertRequestArgs.get("offset");
                     String data = (String) insertRequestArgs.get("data");
 
-                    String writePathName = currentDir + "/src/data/" + filename;
+                    String writePathName = Paths.get(currentDir, "src", "data", filename).toString();
 
                     if (!Paths.get(writePathName).toFile().exists()) {
                         responseString = "FAIL - File does not exist.";
@@ -197,7 +197,7 @@ public class Server {
                     System.out.println("Server received listen request: " + listenRequestArgs);
 
                     String pathname = (String) listenRequestArgs.get("pathname");
-                    String listenPathName = currentDir + "/src/data/" + pathname; //won't work on Windows //todo: use path separator
+                    String listenPathName = Paths.get(currentDir, "src", "data", pathname).toString();
 
                     if (!Paths.get(listenPathName).toFile().exists()) {
                         responseString = "FAIL - File does not exist.";
@@ -223,7 +223,7 @@ public class Server {
                     System.out.println("Server received attr request: " + attrRequestArgs);
 
                     String attrFileName = (String) attrRequestArgs.get("pathname");
-                    String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
+                    String attrPathName = Paths.get(currentDir, "src", "data", attrFileName).toString();
 
                     if (!Paths.get(attrPathName).toFile().exists()) {
                         responseString = "FAIL - File does not exist.";
@@ -245,7 +245,7 @@ public class Server {
                     System.out.println("Server received create request: " + createRequestArgs);
 
                     String createFileName = (String) createRequestArgs.get("pathname");
-                    String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
+                    String createPathName = Paths.get(currentDir, "src", "data", createFileName).toString(); //won't work on Windows //todo: use path separator
 
                     // create directories if they don't exist
                     Paths.get(createPathName).getParent().toFile().mkdirs();
@@ -270,7 +270,7 @@ public class Server {
                     System.out.println("Server received search request: " + searchRequestArgs);
 
                     String searchString = (String) searchRequestArgs.get("searchQuery");
-                    String searchPathName = currentDir + "/src/data/";
+                    String searchPathName = Paths.get(currentDir, "src", "data").toString();
 
                     System.out.println("Searching for substring: " + searchString);
                     System.out.println("Current directory: " + currentDir);

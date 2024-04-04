@@ -48,7 +48,7 @@ public class Subscriber {
 
     public static void addSubscriber(Subscriber subscriber) {
         System.out.println("Subscriber has been added for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
-        String key = currentDir + "/src/data/" + subscriber.getPathname();
+        String key = Paths.get(currentDir, "src", "data", subscriber.getPathname()).toString();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).add(subscriber);
         } else {
@@ -73,7 +73,7 @@ public class Subscriber {
 
     public static void removeSubscriber(Subscriber subscriber) throws IOException {
         System.out.println("Subscriber has been removed for " + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
-        String key = currentDir + "/src/data/" + subscriber.getPathname();
+        String key = Paths.get(currentDir, "src", "data", subscriber.getPathname()).toString();
         if (subscribersMap.containsKey(key)) {
             subscribersMap.get(key).remove(subscriber);
             if (subscribersMap.get(key).isEmpty()) {
