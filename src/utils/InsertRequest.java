@@ -3,7 +3,6 @@ package utils;
 import javax.xml.crypto.Data;
 import java.net.DatagramPacket;
 import java.util.HashMap;
-import java.util.Map;
 
 public class InsertRequest extends Request{
     private String pathname;
@@ -30,8 +29,8 @@ public class InsertRequest extends Request{
         return (getRequestType().getType() + "," + getRequestId() + "," + pathname + "," + offset + "," + data).getBytes();
     }
 
-    public Map<String, Object> deserialize() {
-        Map<String, Object> map = new HashMap<>();
+    public HashMap<String, Object> deserialize() {
+        HashMap<String, Object> map = new HashMap<>();
         map.put("requestType", getRequestType());
         map.put("requestId", getRequestId());
         map.put("pathname", pathname);

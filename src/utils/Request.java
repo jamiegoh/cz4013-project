@@ -14,11 +14,13 @@ public class Request {
         return requestId;
     }
 
+    // Client Request Constructor
     public Request(RequestType requestType, int requestId) {
         this.requestType = requestType;
         this.requestId = requestId;
     }
 
+    // Server Request Constructor
     public Request(DatagramPacket packet) {
         String serialStr = new String(packet.getData(), 0, packet.getLength());
         String[] serialStrSplit = serialStr.split(",");

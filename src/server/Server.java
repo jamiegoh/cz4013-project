@@ -18,18 +18,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Server {
     private DatagramSocket socket;
     private boolean running;
-    private byte[] tempRequestBuf = new byte[1024];
+    private byte[] tempRequestBuf = new byte[4096];
     private byte[] responseBuf;
 
     // history of processed requests, maintained in map for AT_MOST_ONCE semantics
     // request id, DatagramPacket map
-    private static Map<Integer, DatagramPacket> processedRequests = new HashMap<>();
+    private static HashMap<Integer, DatagramPacket> processedRequests = new HashMap<>();
 
 
     private InvocationSemantics invocationSemantics;
@@ -112,8 +111,11 @@ public class Server {
 
             requestPacket = new DatagramPacket(requestBuf, requestBuf.length, clientAddress, clientPort);
 
-            RequestType receivedRequestType = new Request(requestPacket).getRequestType();
-            int requestId = new Request(requestPacket).getRequestId();
+            // get request type and request id
+            Request requestReceived = new Request(requestPacket);
+
+            RequestType receivedRequestType = requestReceived.getRequestType();
+            int requestId = requestReceived.getRequestId();
 
             // Check invocation semantics
             if (invocationSemantics == InvocationSemantics.AT_MOST_ONCE) {
@@ -136,7 +138,7 @@ public class Server {
             // switch on request type
             switch (receivedRequestType) {
                 case READ:
-                    Map<String, Object> readRequestArgs = new ReadRequest(requestPacket, requestId).deserialize();
+                    HashMap<String, Object> readRequestArgs = new ReadRequest(requestPacket, requestId).deserialize();
                     String readFileName = (String) readRequestArgs.get("pathname");
                     int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
@@ -175,7 +177,7 @@ public class Server {
 
                 case INSERT:
                     //TODO: check if file exists
-                    Map<String, Object> insertRequestArgs = new InsertRequest(requestPacket, requestId).deserialize();
+                    HashMap<String, Object> insertRequestArgs = new InsertRequest(requestPacket, requestId).deserialize();
                     String filename = (String) insertRequestArgs.get("pathname");
                     int writeOffset = (int) insertRequestArgs.get("offset");
                     String data = (String) insertRequestArgs.get("data");
@@ -224,7 +226,7 @@ public class Server {
 
                 case LISTEN:
                     System.out.println("Server received listen request");
-                    Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
+                    HashMap<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
 
                     String pathname = (String) listenRequestArgs.get("pathname");
 
@@ -250,7 +252,7 @@ public class Server {
 
                 case ATTR:
                     // get file attributes
-                    Map<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
+                    HashMap<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
                     String attrFileName = (String) attrRequestArgs.get("pathname");
                     String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
 
@@ -271,7 +273,7 @@ public class Server {
                     break;
 
                 case CREATE:
-                    Map<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
+                    HashMap<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
                     String createFileName = (String) createRequestArgs.get("pathname");
                     String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
 
@@ -293,7 +295,7 @@ public class Server {
 
                 case SEARCH:
                     //search based on substring
-                    Map<String, Object> searchRequestArgs = new SearchRequest(requestPacket, requestId).deserialize();
+                    HashMap<String, Object> searchRequestArgs = new SearchRequest(requestPacket, requestId).deserialize();
                     String searchString = (String) searchRequestArgs.get("searchQuery");
                     String searchPathName = currentDir + "/src/data/";
 
@@ -309,8 +311,7 @@ public class Server {
                     break;
             }
 
-            responseBuf = responseString.getBytes();
-            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+            DatagramPacket responsePacket = processResponse(receivedRequestType, requestId, responseString, clientAddress, clientPort);
             socket.send(responsePacket);
             addProcessedRequest(requestId, responsePacket);
             System.out.println("Server responded with: " + responseString);
@@ -318,5 +319,11 @@ public class Server {
         }
         socket.close();
         System.out.println("Server has stopped.");
+    }
+
+    // Process request
+    public DatagramPacket processResponse(RequestType requestType, int requestId, String responseString, InetAddress clientAddress, int clientPort) {
+        byte[] responseBuf = new Response(requestType, requestId, responseString).serialize();
+        return new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
     }
 }

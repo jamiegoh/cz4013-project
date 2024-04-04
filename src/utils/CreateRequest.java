@@ -2,7 +2,6 @@ package utils;
 
 import java.net.DatagramPacket;
 import java.util.HashMap;
-import java.util.Map;
 
 public class CreateRequest extends Request{
 
@@ -24,8 +23,8 @@ public class CreateRequest extends Request{
         return (getRequestType().getType() + "," + getRequestId() + "," + pathname).getBytes();
     }
 
-    public Map<String, Object> deserialize() {
-        Map<String, Object> map = new HashMap<>();
+    public HashMap<String, Object> deserialize() {
+        HashMap<String, Object> map = new HashMap<>();
         map.put("requestType", getRequestType());
         map.put("requestId", getRequestId());
         map.put("pathname", pathname);

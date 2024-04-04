@@ -3,7 +3,6 @@ package utils;
 import java.net.DatagramPacket;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.Map;
 
 public class AttrRequest extends Request {
   private String pathname;
@@ -26,8 +25,8 @@ public class AttrRequest extends Request {
     return (getRequestType().getType() + "," + getRequestId() + "," + pathname).getBytes(StandardCharsets.UTF_8);
   }
 
-  public Map<String, Object> deserialize() {
-    Map<String, Object> map = new HashMap<>();
+  public HashMap<String, Object> deserialize() {
+    HashMap<String, Object> map = new HashMap<>();
     map.put("requestType", getRequestType());
     map.put("requestId", getRequestId());
     map.put("pathname", pathname);

@@ -1,7 +1,6 @@
 package utils;
 
 import java.util.HashMap;
-import java.util.Map;
 
 public class StopRequest extends Request {
     public StopRequest(int requestId) {
@@ -12,8 +11,8 @@ public class StopRequest extends Request {
         return (getRequestType().getType() + "," + getRequestId()).getBytes();
     }
 
-    public Map<String, Object> deserialize() {
-        Map<String, Object> map = new HashMap<>();
+    public HashMap<String, Object> deserialize() {
+        HashMap<String, Object> map = new HashMap<>();
         map.put("requestType", getRequestType());
         map.put("requestId", getRequestId());
         return map;

@@ -5,7 +5,6 @@ import utils.*;
 import java.io.IOException;
 import java.net.*;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 
@@ -170,8 +169,7 @@ public class Client {
 
         String received = null;
 
-  
-
+        // Process Cache
         // Check if cache is valid
         if (requestType == RequestType.READ) {
             int offset = Integer.parseInt(parts[1]);
@@ -186,7 +184,7 @@ public class Client {
                 socket.send(processRequest(RequestType.ATTR, parts, pathname));
                 // receive response
                 DatagramPacket attrResponsePacket = receiveResponse(RequestType.ATTR, parts, pathname);
-                String attrReceived = new String(attrResponsePacket.getData(), 0, attrResponsePacket.getLength());
+                String attrReceived = processResponse(attrResponsePacket);
 
                 // if file does not exist
                 if (Objects.equals(attrReceived.substring(0, 4), "FAIL")) {
@@ -217,7 +215,7 @@ public class Client {
                     DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
                     // If we get here, we have received a response
-                    received = new String(responsePacket.getData(), 0, responsePacket.getLength());
+                    received = processResponse(responsePacket);
 
                     // Caching the response
                     if (requestType == RequestType.READ) {
@@ -232,6 +230,7 @@ public class Client {
             }
         }
 
+        // Send Request and Receive Response
         if (received == null){
             // send request
             socket.send(processRequest(requestType, parts, pathname));
@@ -239,15 +238,14 @@ public class Client {
             DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
             // If we get here, we have received a response
-            received = new String(responsePacket.getData(), 0, responsePacket.getLength());
+            received = processResponse(responsePacket);
         }
 
-
-
+        // Print received data
         System.out.println("Client received data: " + received);
 
 
-        // Listen case
+        // Handle Listen case, keep alive
         if (requestType == RequestType.LISTEN) {
             boolean running = true;
             if (received.equals("ACK")){
@@ -258,7 +256,7 @@ public class Client {
                 return received;
             }
             while (running) {
-                byte[] listenResponseBuf = new byte[1024];
+                byte[] listenResponseBuf = new byte[4096];
                 DatagramPacket listenResponsePacket = new DatagramPacket(listenResponseBuf, listenResponseBuf.length);
                 socket.receive(listenResponsePacket);
                 String listenReceived = new String(listenResponsePacket.getData(), 0, listenResponsePacket.getLength());
@@ -277,7 +275,7 @@ public class Client {
     // Receive response
     public DatagramPacket receiveResponse(RequestType requestType, String[] parts, String pathname) throws IOException {
         // receive response
-        byte[] responseBuf = new byte[1024];
+        byte[] responseBuf = new byte[4096];
         DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length);
 
         socket.setSoTimeout(TIMEOUT);
@@ -300,6 +298,15 @@ public class Client {
 
 
         return responsePacket;
+    }
+
+    public String processResponse(DatagramPacket responsePacket) {
+        Response responseReceived = new Response(responsePacket);
+        HashMap<String, Object> responseMap = responseReceived.deserialize();
+        System.out.println("Server response to Request Type: " + responseMap.get("clientRequestType"));
+        System.out.println("Server response to Request Id: " + responseMap.get("requestId"));
+        System.out.println("Returning message...");
+        return (String) responseMap.get("message");
     }
 
 
@@ -373,7 +380,7 @@ public class Client {
         if (!entryLastValidatedTime.containsKey(pathname)) {
             return 0;
         }
-        Map<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
+        HashMap<Integer, Long> lastValidatedTime = entryLastValidatedTime.get(pathname);
         for (int i = offset; i < offset + readBytes; i++) {
             if (!lastValidatedTime.containsKey(i)) {
                 return 0;
@@ -391,7 +398,7 @@ public class Client {
         if (!entryLastModifiedTime.containsKey(pathname)) {
             return 0;
         }
-        Map<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
+        HashMap<Integer, Long> lastModifiedTime = entryLastModifiedTime.get(pathname);
         for (int i = offset; i < offset + readBytes; i++) {
             if (!lastModifiedTime.containsKey(i)) {
                 return 0;
@@ -433,7 +440,7 @@ public class Client {
     public void storeFileCache(String pathname, int offset, byte[] data) {
         // get pathname cache and last validated time
         if (!fileCacheArray.containsKey(pathname)) {
-            fileCacheArray.put(pathname, new byte[4069]);
+            fileCacheArray.put(pathname, new byte[4096]);
         }
         byte[] fileContent = fileCacheArray.get(pathname);
 

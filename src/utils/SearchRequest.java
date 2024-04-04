@@ -3,7 +3,6 @@ package utils;
 import javax.xml.crypto.Data;
 import java.net.DatagramPacket;
 import java.util.HashMap;
-import java.util.Map;
 
 public class SearchRequest extends Request{
 
@@ -29,8 +28,8 @@ public class SearchRequest extends Request{
         return (getRequestType().getType() + "," + getRequestId() + "," + searchQuery).getBytes();
     }
 
-    public Map<String, Object> deserialize(){
-        Map<String, Object> map = new HashMap<>();
+    public HashMap<String, Object> deserialize(){
+        HashMap<String, Object> map = new HashMap<>();
         map.put("requestType", getRequestType());
         map.put("requestId", getRequestId());
         map.put("searchQuery", searchQuery);

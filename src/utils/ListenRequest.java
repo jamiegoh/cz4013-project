@@ -3,7 +3,6 @@ package utils;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.HashMap;
-import java.util.Map;
 
 public class ListenRequest extends Request{
     private String pathname;
@@ -28,8 +27,8 @@ public class ListenRequest extends Request{
         return (getRequestType().getType() + "," + getRequestId() + "," + pathname + "," + monitorInterval).getBytes();
     }
 
-    public Map<String,Object> deserialize() {
-        Map<String, Object> map = new HashMap<>();
+    public HashMap<String,Object> deserialize() {
+        HashMap<String, Object> map = new HashMap<>();
         map.put("requestType", getRequestType());
         map.put("requestId", getRequestId());
         map.put("pathname", pathname);
