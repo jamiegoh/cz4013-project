@@ -15,78 +15,41 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Server {
+    // Connection
     private DatagramSocket socket;
+    private int serverPort;
     private boolean running;
     private byte[] tempRequestBuf = new byte[4096];
     private byte[] responseBuf;
+    
 
     // history of processed requests, maintained in map for AT_MOST_ONCE semantics
     // request id, DatagramPacket map
     private static HashMap<Integer, DatagramPacket> processedRequests = new HashMap<>();
 
-
+    // Invocation semantics
     private InvocationSemantics invocationSemantics;
 
-    private int serverPort;
+    // Simulation for invocation semantics
+    private boolean isSimulation = false;
+    
 
+
+
+
+    // Constructor
     public Server(int serverPort, InvocationSemantics invocationSemantics) throws SocketException {
         this.serverPort = serverPort;
         this.invocationSemantics = invocationSemantics;
         socket = new DatagramSocket(this.serverPort);
     }
 
-    public boolean isProcessed(int requestId) {
-        return processedRequests.containsKey(requestId);
-    }
 
-    public void addProcessedRequest(int requestId, DatagramPacket requestPacket) {
-        processedRequests.put(requestId, requestPacket);
-    }
-
-    public void notifySingleSubscriber(InetAddress clientAddress, int clientPort, String key) {
-        try (RandomAccessFile file = new RandomAccessFile(key, "r")) {
-            byte[] readBuf = new byte[(int) file.length()];
-            file.seek(0);
-            file.read(readBuf, 0, (int) file.length());
-            responseBuf = new String(readBuf, StandardCharsets.UTF_8).getBytes();
-            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-            socket.send(responsePacket);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    public String searchForSubString(Path path, String searchString) {
-        //Returns the first file that contains the substring
-        String result = "FAIL - Substring not found in any files.";
-        try {
-            List<Path> paths = Files.walk(path)
-                    .filter(Files::isRegularFile)
-                    .toList();
-            for (Path filePath : paths) {
-                try {
-                    String content = Files.readString(filePath);
-                    if (content.contains(searchString)) {
-                        System.out.println("Found substring in file: " + filePath);
-                        result = "Found " + searchString  + " in file: " + filePath;
-                        break;
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error reading file: " + filePath);
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Error walking the file tree: " + path);
-        }
-        return result;
-    }
-
+    // Run server (Core function)
     public void run() throws IOException {
         running = true;
         System.out.println("Server IP address: " + InetAddress.getLocalHost().getHostAddress());
@@ -312,18 +275,94 @@ public class Server {
             }
 
             DatagramPacket responsePacket = processResponse(receivedRequestType, requestId, responseString, clientAddress, clientPort);
-            socket.send(responsePacket);
+            // Store processed request in history
             addProcessedRequest(requestId, responsePacket);
-            System.out.println("Server responded with: " + responseString);
+
+            // send response
+            sendResponse(responsePacket, requestId);
+            
+            
 
         }
         socket.close();
         System.out.println("Server has stopped.");
     }
 
+    // Send response
+    public void sendResponse(DatagramPacket responsePacket, int requestId) throws IOException {
+        // if we are simulating
+        if (isSimulation){
+            System.out.println("Simulation mode is on.");
+            // Randomly drop packets
+            if (Math.random() < 0.5){
+                System.out.println("Simulating server packet loss...");
+                System.out.println("Dropping packet from server with request id: " + requestId);
+            }
+            else{
+                System.out.println("Packet is not dropped! Sending response...");
+                socket.send(responsePacket);
+                System.out.println("Server responded with: " + responsePacket.getData());
+            }
+        }
+        else{
+            socket.send(responsePacket);
+            System.out.println("Server responded with: " + responsePacket.getData());
+        }
+    }
+
     // Process request
     public DatagramPacket processResponse(RequestType requestType, int requestId, String responseString, InetAddress clientAddress, int clientPort) {
         byte[] responseBuf = new Response(requestType, requestId, responseString).serialize();
         return new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+    }
+
+        // History of processed requests
+    public boolean isProcessed(int requestId) {
+        return processedRequests.containsKey(requestId);
+    }
+
+    public void addProcessedRequest(int requestId, DatagramPacket requestPacket) {
+        processedRequests.put(requestId, requestPacket);
+    }
+
+    // Subscribe
+    public void notifySingleSubscriber(InetAddress clientAddress, int clientPort, String key) {
+        try (RandomAccessFile file = new RandomAccessFile(key, "r")) {
+            byte[] readBuf = new byte[(int) file.length()];
+            file.seek(0);
+            file.read(readBuf, 0, (int) file.length());
+            responseBuf = new String(readBuf, StandardCharsets.UTF_8).getBytes();
+            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+            socket.send(responsePacket);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Search
+    public String searchForSubString(Path path, String searchString) {
+        //Returns the first file that contains the substring
+        String result = "FAIL - Substring not found in any files.";
+        try {
+            List<Path> paths = Files.walk(path)
+                    .filter(Files::isRegularFile)
+                    .toList();
+            for (Path filePath : paths) {
+                try {
+                    String content = Files.readString(filePath);
+                    if (content.contains(searchString)) {
+                        System.out.println("Found substring in file: " + filePath);
+                        result = "Found " + searchString  + " in file: " + filePath;
+                        break;
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error reading file: " + filePath);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error walking the file tree: " + path);
+        }
+        return result;
     }
 }

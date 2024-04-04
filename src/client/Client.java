@@ -9,22 +9,29 @@ import java.util.Objects;
 import java.util.Scanner;
 
 public class Client {
-    // Invocation semantics
-    private InvocationSemantics invocationSemantics;
+
+    // Constants
     // timeout
     private static final int TIMEOUT = 1000;
     // Max number of retries
     private static final int MAX_RETRIES = 3;
-    // Request id 
-    private int requestId = 1;
 
+
+    // Connection
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private int serverPort;
-
     private String clientAddress;
     private int clientPort;
+
+    // Request id count
+    private int requestId = 1;
     
+    // Invocation semantics
+    private InvocationSemantics invocationSemantics;
+
+    // Simulation for invocation semantics
+    private boolean isSimulation = false;
 
     // Cache of responses
     // Freshness time (in milliseconds)
@@ -36,8 +43,9 @@ public class Client {
     // Structure to store local file last modified time
     private static HashMap<String, HashMap<Integer, Long>> entryLastModifiedTime = new HashMap<>();
 
-    
 
+
+    
 
     // Constructor
     public Client(String serverAddress, int serverPort, InvocationSemantics invocationSemantics, int freshnessInterval) throws UnknownHostException, SocketException {
@@ -50,7 +58,7 @@ public class Client {
         this.freshnessInterval = freshnessInterval;
     }
 
-    // run 
+    // Run client (Core function)
     public void run() throws IOException {
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
@@ -210,7 +218,8 @@ public class Client {
                 
                 if (received == null) {
                     // send request
-                    socket.send(processRequest(requestType, parts, pathname));
+                    sendRequest(requestType, parts, pathname);
+                    
                     // receive response
                     DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
@@ -233,7 +242,7 @@ public class Client {
         // Send Request and Receive Response
         if (received == null){
             // send request
-            socket.send(processRequest(requestType, parts, pathname));
+            sendRequest(requestType, parts, pathname);
             // receive response
             DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
@@ -270,6 +279,26 @@ public class Client {
         }
 
         return received;
+    }
+
+    // Send request
+    public void sendRequest(RequestType requestType, String[] parts, String pathname) throws IOException {
+        // if we are simulating
+        if (isSimulation){
+            System.out.println("Simulation mode is on.");
+            // Randomly drop packets
+            if (Math.random() < 0.5){
+                System.out.println("Simulating client packet loss...");
+                System.out.println("Dropping packet from client with request id: " + requestId);
+            }
+            else{
+                System.out.println("Packet is not dropped! Sending request to server...");
+                socket.send(processRequest(requestType, parts, pathname));
+            }
+        }
+        else{
+            socket.send(processRequest(requestType, parts, pathname));
+        }
     }
 
     // Receive response
