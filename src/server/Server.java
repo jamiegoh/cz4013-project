@@ -19,6 +19,10 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Server {
+    // Consts
+    // Drop rate
+    private static final double DROP_RATE = 0.5;
+
     // Connection
     private DatagramSocket socket;
     private int serverPort;
@@ -193,8 +197,9 @@ public class Server {
                     System.out.println("Server received listen request: " + listenRequestArgs);
 
                     String pathname = (String) listenRequestArgs.get("pathname");
+                    String listenPathName = currentDir + "/src/data/" + pathname; //won't work on Windows //todo: use path separator
 
-                    if (!Paths.get(pathname).toFile().exists()) {
+                    if (!Paths.get(listenPathName).toFile().exists()) {
                         responseString = "FAIL - File does not exist.";
                         break;
                     }
@@ -298,7 +303,7 @@ public class Server {
         if (isSimulation){
             System.out.println("Simulation mode is on.");
             // Randomly drop packets
-            if (Math.random() < 0.5){
+            if (Math.random() < DROP_RATE){
                 System.out.println("Simulating server packet loss...");
                 System.out.println("Dropping packet from server with request id: " + requestId);
             }

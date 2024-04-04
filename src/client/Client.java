@@ -18,6 +18,8 @@ public class Client {
     private static final int TIMEOUT = 1000;
     // Max number of retries
     private static final int MAX_RETRIES = 3;
+    // Drop rate
+    private static final double DROP_RATE = 0.5;
 
 
     // Connection
@@ -188,7 +190,7 @@ public class Client {
             int readBytes = Integer.parseInt(parts[2]);
 
             // if cache is valid
-            if (validateCache(pathname, offset, readBytes)) {
+            if ( validateCache(pathname, offset, readBytes)) {
                 System.out.println("Cache is fresh");
                 received = new String(getFileCache(pathname, offset, readBytes));
             } else {
@@ -207,7 +209,7 @@ public class Client {
                     return attrReceived;
                 }
                 else{
-                    // get last modified time of file
+                    // get last modifi ed time of file
                     long serverLastModifiedTime = Long.parseLong(attrReceived);
                     // format time
                     Instant instant = Instant.ofEpochMilli(serverLastModifiedTime);
@@ -282,7 +284,7 @@ public class Client {
             if (received.equals("ACK")){
                 socket.setSoTimeout(0);
             }
-            if (Objects.equals(received.substring(0, 4), "FAIL")) {
+            else if (Objects.equals(received.substring(0, 4), "FAIL")) {
                 System.out.println("File does not exist in server");
                 return received;
             }
@@ -309,7 +311,7 @@ public class Client {
         if (isSimulation){
             System.out.println("Simulation mode is on.");
             // Randomly drop packets
-            if (Math.random() < 0.5){
+            if (Math.random() < DROP_RATE){
                 System.out.println("Simulating client packet loss...");
                 System.out.println("Dropping packet from client with request id: " + requestId);
             }
@@ -324,7 +326,7 @@ public class Client {
         }
         System.out.println();
     }
-
+    
     // Receive response
     public DatagramPacket receiveResponse(RequestType requestType, String[] parts, String pathname) throws IOException {
         // receive response
