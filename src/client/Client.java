@@ -4,6 +4,9 @@ import utils.*;
 
 import java.io.IOException;
 import java.net.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Scanner;
@@ -252,7 +255,15 @@ public class Client {
         }
 
         // Print received data
-        System.out.println("Client received data: " + received);
+        if(requestType != RequestType.ATTR){
+        System.out.println("Client received data: " + received);}
+        else{
+            Instant instant = Instant.ofEpochMilli(Long.parseLong(received));
+            String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.systemDefault())
+                    .format(instant);
+            System.out.println("Client received data: " + displayString);
+        }
 
 
         // Handle Listen case, keep alive
