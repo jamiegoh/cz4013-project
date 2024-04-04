@@ -212,10 +212,15 @@ public class Client {
                     // format time
                     Instant instant = Instant.ofEpochMilli(serverLastModifiedTime);
                     String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault()).format(instant);
-
                     System.out.println("Server file last modified time: " + displayString);
+
+                    long localLastModifiedTime = getLocalLastModifiedTime(pathname, offset, readBytes);
+                    instant = Instant.ofEpochMilli(localLastModifiedTime);
+                    displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault()).format(instant);
+                    System.out.println("Local file last modified time: " + displayString);
+
                     // if last modified time of file is greater than smallestTime, then cache is invalid
-                    if (serverLastModifiedTime > getLocalLastModifiedTime(pathname, offset, readBytes)) {
+                    if (serverLastModifiedTime > localLastModifiedTime) {
                         System.out.println("Cache is invalid, updating cache...");
                         received = null;
                     } else {
@@ -416,7 +421,14 @@ public class Client {
 
         // get smallest last validated time
         long smallestValidatedTime = getSmallestLastValidatedTime(pathname, offset, readBytes);
-        System.out.println("Local validated time: " + smallestValidatedTime);
+
+        if (smallestValidatedTime == 0) {
+            return false;
+        }
+        Instant instant = Instant.ofEpochMilli(smallestValidatedTime);
+        String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault()).format(instant);
+
+        System.out.println("Local validated time: " + displayString);
 
         if (System.currentTimeMillis() - smallestValidatedTime < freshnessInterval) {
             return true;
