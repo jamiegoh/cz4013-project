@@ -476,6 +476,7 @@ public class Client {
 
     // update last validated time
     public void updateLastValidatedTime(String pathname, int offset, int readBytes) {
+        System.out.println("Updating local last validated time...");
         if (!entryLastValidatedTime.containsKey(pathname)) {
             entryLastValidatedTime.put(pathname, new HashMap<>());
         }
@@ -490,6 +491,7 @@ public class Client {
 
     // update last modified time
     public void updateLastModifiedTime(String pathname, int offset, int readBytes, long serverLastModifiedTime) {
+        System.out.println("Updating local last modified time...");
         if (!entryLastModifiedTime.containsKey(pathname)) {
             entryLastModifiedTime.put(pathname, new HashMap<>());
         }
