@@ -145,7 +145,6 @@ public class Server {
                     break;
 
                 case INSERT:
-                    //TODO: check if file exists
                     HashMap<String, Object> insertRequestArgs = new InsertRequest(requestPacket, requestId).deserialize();
                     System.out.println("Server received insert request: " + insertRequestArgs);
 
@@ -177,7 +176,6 @@ public class Server {
                             e.printStackTrace();
                         }
 
-                        // responseBuf = responseString.getBytes();// todo: do we need this?
 
                         List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
                         System.out.println("Subscribers: " + subscribers);
@@ -245,7 +243,7 @@ public class Server {
                     System.out.println("Server received create request: " + createRequestArgs);
 
                     String createFileName = (String) createRequestArgs.get("pathname");
-                    String createPathName = Paths.get(currentDir, "src", "data", createFileName).toString(); //won't work on Windows //todo: use path separator
+                    String createPathName = Paths.get(currentDir, "src", "data", createFileName).toString();
 
                     // create directories if they don't exist
                     Paths.get(createPathName).getParent().toFile().mkdirs();

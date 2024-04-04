@@ -87,21 +87,6 @@ public class Subscriber {
 
     }
 
-//    public static void notifySubscribers(String pathname) {
-//        System.out.println("subscriber for " + pathname + " has been notified");
-//        String key = currentDir + "/src/data/" + pathname;
-//        if (subscribersMap.containsKey(key)) {
-//            try {
-//                for (Subscriber subscriber : subscribersMap.get(key)) {
-//                    // todo: put 0 as request id for now, dont think we should use ReadRequst here
-//
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
     public InetAddress getClientAddress() {
         return clientAddress;
     }
