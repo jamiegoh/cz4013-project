@@ -4,6 +4,9 @@ import utils.*;
 
 import java.io.IOException;
 import java.net.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Scanner;
@@ -193,6 +196,9 @@ public class Client {
                 sendRequest(RequestType.ATTR, parts, pathname, false);
                 // receive response
                 DatagramPacket attrResponsePacket = receiveResponse(RequestType.ATTR, parts, pathname);
+                if (attrResponsePacket == null) {
+                    return null;
+                }
                 String attrReceived = processResponse(attrResponsePacket);
 
                 // if file does not exist
@@ -203,7 +209,11 @@ public class Client {
                 else{
                     // get last modified time of file
                     long serverLastModifiedTime = Long.parseLong(attrReceived);
-                    System.out.println("Server file last modified time: " + serverLastModifiedTime);
+                    // format time
+                    Instant instant = Instant.ofEpochMilli(serverLastModifiedTime);
+                    String displayString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault()).format(instant);
+
+                    System.out.println("Server file last modified time: " + displayString);
                     // if last modified time of file is greater than smallestTime, then cache is invalid
                     if (serverLastModifiedTime > getLocalLastModifiedTime(pathname, offset, readBytes)) {
                         System.out.println("Cache is invalid, updating cache...");
@@ -223,6 +233,9 @@ public class Client {
 
                     // receive response
                     DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
+                    if (responsePacket == null) {
+                        return null;
+                    }
 
                     // If we get here, we have received a response
                     received = processResponse(responsePacket);
@@ -246,6 +259,9 @@ public class Client {
             sendRequest(requestType, parts, pathname, false);
             // receive response
             DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
+            if (responsePacket == null) {
+                return null;
+            }
 
             // If we get here, we have received a response
             received = processResponse(responsePacket);
@@ -315,21 +331,24 @@ public class Client {
         while (retries < MAX_RETRIES) {
             try {
                 socket.receive(responsePacket);
-                break;
+                return responsePacket;
             } catch (SocketTimeoutException e) {
                 System.out.println("Timeout, retrying...");
                 sendRequest(requestType, parts, pathname, true);
-                retries++;
+            }
+            retries++;
+            if (retries == MAX_RETRIES) {
+                try {
+                    socket.receive(responsePacket);
+                    return responsePacket;
+                } catch (SocketTimeoutException e) {
+                    System.out.println("Max retries reached, exiting...");
+                    return null;
+                }
             }
         }
 
-        if (retries == MAX_RETRIES) {
-            System.out.println("Max retries reached, exiting...");
-            return null;
-        }
-
-
-        return responsePacket;
+       return null;
     }
 
     public String processResponse(DatagramPacket responsePacket) {
@@ -366,7 +385,6 @@ public class Client {
                 break;
             case LISTEN:
                 int monitorInterval = Integer.parseInt(parts[1]);
-                // todo: are we passing server own address here?
                 byte[] listenRequestBuf = new ListenRequest(pathname, monitorInterval, requestId).serialize();
                 requestPacket = new DatagramPacket(listenRequestBuf, listenRequestBuf.length, serverAddress, serverPort);
                 break;

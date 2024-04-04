@@ -263,7 +263,7 @@ public class Server {
                     //search based on substring
                     HashMap<String, Object> searchRequestArgs = new SearchRequest(requestPacket, requestId).deserialize();
                     System.out.println("Server received search request: " + searchRequestArgs);
-                    
+
                     String searchString = (String) searchRequestArgs.get("searchQuery");
                     String searchPathName = currentDir + "/src/data/";
 
@@ -282,7 +282,6 @@ public class Server {
             DatagramPacket responsePacket = processResponse(receivedRequestType, requestId, responseString, clientAddress, clientPort);
             // Store processed request in history
             addProcessedRequest(requestId, responsePacket);
-
             // send response
             sendResponse(responsePacket, requestId, responseString);
             
