@@ -22,20 +22,23 @@ public class Main {
     }
 
     public static void main(@org.jetbrains.annotations.NotNull String @NotNull [] args) {
-        System.out.println("Hello world!");
-
         printUsage();
 
+        String appType; // "--server" or "--client"
 
-        // if args is not of length 2, print error message
-        if ((args.length < 3) || (args.length > 5)) {
+        if (args.length > 0){
+            appType = args[0];
+        } else {
             printUsage();
             return;
         }
-
-        String appType = args[0]; // "--server" or "--client"
-
+    
         if (appType.equals("--server")) {
+            // check args
+            if (args.length < 2) {
+                printUsage();
+                return;
+            }
             System.out.println("Starting server...");
             int serverPort = Integer.parseInt(args[1]);
             InvocationSemantics invocationSemantics = args.length == 3 ? InvocationSemantics.valueOf(args[2]) : InvocationSemantics.AT_LEAST_ONCE;
@@ -46,6 +49,11 @@ public class Main {
                 e.printStackTrace();
             }
         } else if (appType.equals("--client")) {
+            // check args
+            if (args.length < 3) {
+                printUsage();
+                return;
+            }
             System.out.println("Starting client...");
             String serverAddress = args[1];
             int serverPort = Integer.parseInt(args[2]);

@@ -25,7 +25,7 @@ public class Client {
     private int clientPort;
 
     // Request id count
-    private int requestId = 1;
+    private int requestId = 0;
     
     // Invocation semantics
     private InvocationSemantics invocationSemantics;
@@ -180,6 +180,7 @@ public class Client {
         // Process Cache
         // Check if cache is valid
         if (requestType == RequestType.READ) {
+            System.out.println("Processing cache for READ request...");
             int offset = Integer.parseInt(parts[1]);
             int readBytes = Integer.parseInt(parts[2]);
 
@@ -189,7 +190,7 @@ public class Client {
                 received = new String(getFileCache(pathname, offset, readBytes));
             } else {
                 // send request to server to getattr of file
-                socket.send(processRequest(RequestType.ATTR, parts, pathname));
+                sendRequest(RequestType.ATTR, parts, pathname, false);
                 // receive response
                 DatagramPacket attrResponsePacket = receiveResponse(RequestType.ATTR, parts, pathname);
                 String attrReceived = processResponse(attrResponsePacket);
@@ -218,8 +219,8 @@ public class Client {
                 
                 if (received == null) {
                     // send request
-                    sendRequest(requestType, parts, pathname);
-                    
+                    sendRequest(requestType, parts, pathname, false);
+
                     // receive response
                     DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
@@ -228,7 +229,7 @@ public class Client {
 
                     // Caching the response
                     if (requestType == RequestType.READ) {
-                        storeFileCache(pathname, offset, responsePacket.getData());
+                        storeFileCache(pathname, offset, received.getBytes());
                         // update last validated time
                         updateLastValidatedTime(pathname, offset, readBytes);
                         // update last modified time
@@ -242,7 +243,7 @@ public class Client {
         // Send Request and Receive Response
         if (received == null){
             // send request
-            sendRequest(requestType, parts, pathname);
+            sendRequest(requestType, parts, pathname, false);
             // receive response
             DatagramPacket responsePacket = receiveResponse(requestType, parts, pathname);
 
@@ -282,7 +283,7 @@ public class Client {
     }
 
     // Send request
-    public void sendRequest(RequestType requestType, String[] parts, String pathname) throws IOException {
+    public void sendRequest(RequestType requestType, String[] parts, String pathname, boolean isRetry) throws IOException {
         // if we are simulating
         if (isSimulation){
             System.out.println("Simulation mode is on.");
@@ -292,13 +293,15 @@ public class Client {
                 System.out.println("Dropping packet from client with request id: " + requestId);
             }
             else{
-                System.out.println("Packet is not dropped! Sending request to server...");
-                socket.send(processRequest(requestType, parts, pathname));
+                socket.send(processRequest(requestType, parts, pathname, isRetry));
+                System.out.println("Packet is not dropped! Sending " + requestType + " Request " + "(Id: " + requestId + ") to server...");
             }
         }
         else{
-            socket.send(processRequest(requestType, parts, pathname));
+            socket.send(processRequest(requestType, parts, pathname, isRetry));
+            System.out.println("Sending " + requestType + " Request " + "(Id: " + requestId + ") to server...");
         }
+        System.out.println();
     }
 
     // Receive response
@@ -315,7 +318,7 @@ public class Client {
                 break;
             } catch (SocketTimeoutException e) {
                 System.out.println("Timeout, retrying...");
-                socket.send(processRequest(requestType, parts, pathname));
+                sendRequest(requestType, parts, pathname, true);
                 retries++;
             }
         }
@@ -340,7 +343,12 @@ public class Client {
 
 
     // Process request
-    public DatagramPacket processRequest(RequestType requestType, String[] parts, String pathname) {
+    public DatagramPacket processRequest(RequestType requestType, String[] parts, String pathname, boolean isRetry) {
+        // Increment request id
+        if (!isRetry){
+            requestId++;
+        }
+
         DatagramPacket requestPacket;
         // process request
         switch (requestType) {
@@ -381,9 +389,6 @@ public class Client {
             default:
                 throw new IllegalArgumentException("Invalid request type: " + requestType);
         }
-
-        // Increment request id
-        requestId++;
 
         return requestPacket;
     }

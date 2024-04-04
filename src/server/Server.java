@@ -35,7 +35,7 @@ public class Server {
     private InvocationSemantics invocationSemantics;
 
     // Simulation for invocation semantics
-    private boolean isSimulation = false;
+    private boolean isSimulation = true;
     
 
 
@@ -102,6 +102,8 @@ public class Server {
             switch (receivedRequestType) {
                 case READ:
                     HashMap<String, Object> readRequestArgs = new ReadRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received read request: " + readRequestArgs);
+
                     String readFileName = (String) readRequestArgs.get("pathname");
                     int readOffset = (int) readRequestArgs.get("offset");
                     int readBytes = (int) readRequestArgs.get("readBytes");
@@ -132,7 +134,7 @@ public class Server {
                         file.seek(readOffset);
                         file.read(readBuf, 0, readBytes);
                         responseString = new String(readBuf, StandardCharsets.UTF_8);
-                        System.out.println("Server received read request: " + readRequestArgs);
+                        
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -141,6 +143,8 @@ public class Server {
                 case INSERT:
                     //TODO: check if file exists
                     HashMap<String, Object> insertRequestArgs = new InsertRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received insert request: " + insertRequestArgs);
+
                     String filename = (String) insertRequestArgs.get("pathname");
                     int writeOffset = (int) insertRequestArgs.get("offset");
                     String data = (String) insertRequestArgs.get("data");
@@ -169,10 +173,7 @@ public class Server {
                             e.printStackTrace();
                         }
 
-                        System.out.println("Server received insert request: " + insertRequestArgs);
-
-                        responseBuf = responseString.getBytes();
-
+                        // responseBuf = responseString.getBytes();// todo: do we need this?
 
                         List<Subscriber> subscribers = Subscriber.getSubscribers(writePathName);
                         System.out.println("Subscribers: " + subscribers);
@@ -188,8 +189,8 @@ public class Server {
                     break;
 
                 case LISTEN:
-                    System.out.println("Server received listen request");
                     HashMap<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received listen request: " + listenRequestArgs);
 
                     String pathname = (String) listenRequestArgs.get("pathname");
 
@@ -203,8 +204,6 @@ public class Server {
                     Subscriber subscriber = new Subscriber(clientAddress, clientPort, pathname, monitorInterval);
 
                     Subscriber.addSubscriber(subscriber);
-
-                    System.out.println("Server received listen request: " + listenRequestArgs);
                     break;
 
                 case STOP:
@@ -216,6 +215,8 @@ public class Server {
                 case ATTR:
                     // get file attributes
                     HashMap<String, Object> attrRequestArgs = new AttrRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received attr request: " + attrRequestArgs);
+
                     String attrFileName = (String) attrRequestArgs.get("pathname");
                     String attrPathName = currentDir + "/src/data/" + attrFileName; //won't work on Windows //todo: use path separator
 
@@ -232,14 +233,14 @@ public class Server {
                             .withZone(ZoneId.systemDefault())
                             .format(instant);
                     System.out.println("Last modified time: " + displayString);
-                    System.out.println("Server received attr request: " + attrRequestArgs);
                     break;
 
                 case CREATE:
                     HashMap<String, Object> createRequestArgs = new CreateRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received create request: " + createRequestArgs);
+
                     String createFileName = (String) createRequestArgs.get("pathname");
                     String createPathName = currentDir + "/src/data/" + createFileName; //won't work on Windows //todo: use path separator
-
 
                     // create directories if they don't exist
                     Paths.get(createPathName).getParent().toFile().mkdirs();
@@ -251,14 +252,18 @@ public class Server {
                     if (creation) {
                         responseString = "ACK - File Created";
                     } else {
-                        responseString = "FAIL - File already exists";
+                        responseString = "ACK - File already exists, creating new file with timestamp appended.";
+                        // append timestamp to filename
+                        createPathName = createPathName + "_" + System.currentTimeMillis();
+                        Paths.get(createPathName).toFile().createNewFile();
                     }
-                    System.out.println("Server received create request: " + createRequestArgs);
                     break;
 
                 case SEARCH:
                     //search based on substring
                     HashMap<String, Object> searchRequestArgs = new SearchRequest(requestPacket, requestId).deserialize();
+                    System.out.println("Server received search request: " + searchRequestArgs);
+                    
                     String searchString = (String) searchRequestArgs.get("searchQuery");
                     String searchPathName = currentDir + "/src/data/";
 
@@ -279,7 +284,7 @@ public class Server {
             addProcessedRequest(requestId, responsePacket);
 
             // send response
-            sendResponse(responsePacket, requestId);
+            sendResponse(responsePacket, requestId, responseString);
             
             
 
@@ -289,7 +294,7 @@ public class Server {
     }
 
     // Send response
-    public void sendResponse(DatagramPacket responsePacket, int requestId) throws IOException {
+    public void sendResponse(DatagramPacket responsePacket, int requestId, String responseString) throws IOException {
         // if we are simulating
         if (isSimulation){
             System.out.println("Simulation mode is on.");
@@ -301,13 +306,14 @@ public class Server {
             else{
                 System.out.println("Packet is not dropped! Sending response...");
                 socket.send(responsePacket);
-                System.out.println("Server responded with: " + responsePacket.getData());
+                System.out.println("Server responded with: " + responseString);
             }
         }
         else{
             socket.send(responsePacket);
-            System.out.println("Server responded with: " + responsePacket.getData());
+            System.out.println("Server responded with: " + responseString);
         }
+        System.out.println();
     }
 
     // Process request
