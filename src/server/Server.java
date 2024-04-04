@@ -90,7 +90,6 @@ public class Server {
 
     public void run() throws IOException {
         running = true;
-        // output server ip address
         System.out.println("Server IP address: " + InetAddress.getLocalHost().getHostAddress());
         System.out.println("Server is running on port " + this.serverPort);
         System.out.println("Invocation semantics: " + invocationSemantics);
@@ -222,6 +221,7 @@ public class Server {
 
                     }
                     break;
+
                 case LISTEN:
                     System.out.println("Server received listen request");
                     Map<String, Object> listenRequestArgs = new ListenRequest(requestPacket, requestId).deserialize();
@@ -240,7 +240,6 @@ public class Server {
                     Subscriber.addSubscriber(subscriber);
 
                     System.out.println("Server received listen request: " + listenRequestArgs);
-
                     break;
 
                 case STOP:
@@ -305,23 +304,19 @@ public class Server {
                     responseString = searchForSubString(Paths.get(searchPathName), searchString);
                     break;
 
-                        default:
-                            System.out.println("Invalid request type: " + receivedRequestType);
-                            break;
-                    }
-
-                    responseBuf = responseString.getBytes();
-                    DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
-                    socket.send(responsePacket);
-                    addProcessedRequest(requestId, responsePacket);
-
-                    System.out.println("Server responded with: " + responseString);
-
+                default:
+                    System.out.println("Invalid request type: " + receivedRequestType);
+                    break;
             }
 
-            socket.close();
-            System.out.println("Server has stopped.");
+            responseBuf = responseString.getBytes();
+            DatagramPacket responsePacket = new DatagramPacket(responseBuf, responseBuf.length, clientAddress, clientPort);
+            socket.send(responsePacket);
+            addProcessedRequest(requestId, responsePacket);
+            System.out.println("Server responded with: " + responseString);
+
         }
-
-
+        socket.close();
+        System.out.println("Server has stopped.");
     }
+}
