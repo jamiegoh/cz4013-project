@@ -32,7 +32,7 @@ public class Main {
             printUsage();
             return;
         }
-    
+    // check app type and start server or client
         if (appType.equals("--server")) {
             // check args
             if (args.length < 2) {
@@ -41,6 +41,7 @@ public class Main {
             }
             System.out.println("Starting server...");
             int serverPort = Integer.parseInt(args[1]);
+            // default invocation semantics is AT_LEAST_ONCE
             InvocationSemantics invocationSemantics = args.length == 3 ? InvocationSemantics.valueOf(args[2]) : InvocationSemantics.AT_LEAST_ONCE;
             try {
                 server.Server server = new server.Server(serverPort, invocationSemantics);
@@ -57,7 +58,9 @@ public class Main {
             System.out.println("Starting client...");
             String serverAddress = args[1];
             int serverPort = Integer.parseInt(args[2]);
+            // default invocation semantics is AT_LEAST_ONCE
             InvocationSemantics invocationSemantics = args.length == 4 ? InvocationSemantics.valueOf(args[3]) : InvocationSemantics.AT_LEAST_ONCE;
+            // default freshness interval is 0
             int freshnessInterval = args.length == 5 ? Integer.parseInt(args[4]) : 0;
 
             try {

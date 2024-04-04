@@ -9,6 +9,7 @@ public class InsertRequest extends Request{
     private int offset;
     private String data;
 
+    // Constructor for client
     public InsertRequest(String pathname, int offset, String data, int requestId) {
         super(RequestType.INSERT, requestId);
         this.pathname = pathname;
@@ -16,6 +17,7 @@ public class InsertRequest extends Request{
         this.data = data;
     }
 
+    // Constructor for server
     public InsertRequest(DatagramPacket packet, int requestId) {
         super(RequestType.INSERT, requestId);
         String serialStr = new String(packet.getData(), 0, packet.getLength());

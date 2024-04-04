@@ -8,11 +8,13 @@ public class SearchRequest extends Request{
 
     private String searchQuery;
 
+    // Constructor for client
     public SearchRequest(String searchQuery,  int requestId){
         super(RequestType.SEARCH, requestId);
         this.searchQuery = searchQuery;
     }
 
+    // Constructor for server
     public SearchRequest (DatagramPacket packet, int requestId){
         super(RequestType.SEARCH, requestId);
         String serialStr = new String(packet.getData(), 0, packet.getLength());

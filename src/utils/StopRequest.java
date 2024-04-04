@@ -3,6 +3,8 @@ package utils;
 import java.util.HashMap;
 
 public class StopRequest extends Request {
+
+    // Constructor for client
     public StopRequest(int requestId) {
         super(RequestType.STOP, requestId);
     }

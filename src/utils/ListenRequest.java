@@ -9,12 +9,14 @@ public class ListenRequest extends Request{
     private int monitorInterval;
 
 
+    // Constructor for client
     public ListenRequest( String pathname, int monitorInterval, int requestId) {
         super(RequestType.LISTEN, requestId);
         this.pathname = pathname;
         this.monitorInterval = monitorInterval;
     }
 
+    // Constructor for server
     public ListenRequest(DatagramPacket packet, int requestId) {
         super(RequestType.LISTEN, requestId);
         String serialStr = new String(packet.getData(), 0, packet.getLength());

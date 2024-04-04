@@ -15,6 +15,7 @@ public class Subscriber {
     private int monitorInterval;
     private DatagramSocket socket;
 
+    //Constructor for server
     public Subscriber(InetAddress clientAddress, int clientPort, String pathname, int monitorInterval) throws SocketException {
         this.clientAddress = clientAddress;
         this.clientPort = clientPort;
@@ -46,6 +47,7 @@ public class Subscriber {
     private static Timer timer = new Timer();
     static String currentDir = Paths.get("").toAbsolutePath().toString();
 
+    // Add subscriber to the subscriber map
     public static void addSubscriber(Subscriber subscriber) {
         System.out.println("Subscriber has been added for" + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
         String key = Paths.get(currentDir, "src", "data", subscriber.getPathname()).toString();
@@ -58,6 +60,7 @@ public class Subscriber {
         }
 
         System.out.println("Subscribers Map: " + subscribersMap);
+        // Schedule a timer to remove the subscriber after the monitor interval
         timer.schedule(new TimerTask() {
 
             @Override
@@ -71,6 +74,7 @@ public class Subscriber {
         }, subscriber.getMonitorInterval() * 60 * 1000); // Convert monitor interval to ms
     }
 
+    // Remove subscriber from the subscriber map
     public static void removeSubscriber(Subscriber subscriber) throws IOException {
         System.out.println("Subscriber has been removed for " + subscriber.getPathname() + " with interval " + subscriber.getMonitorInterval() + " minutes from" + subscriber.clientAddress + ":" + subscriber.clientPort);
         String key = Paths.get(currentDir, "src", "data", subscriber.getPathname()).toString();
@@ -80,6 +84,7 @@ public class Subscriber {
                 subscribersMap.remove(key);
             }
         }
+        // Send a message to the client that the interval has ended
         String message = "INTERVAL ENDED";
         byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
         DatagramPacket packet = new DatagramPacket(messageBytes, messageBytes.length, subscriber.clientAddress, subscriber.clientPort);
@@ -95,6 +100,7 @@ public class Subscriber {
         return clientPort;
     }
 
+    // Get subscribers from the subscriber map for a given pathname
     public static List<Subscriber> getSubscribers(String pathname) {
         String key = pathname;
         System.out.println("Subscriber map currently contains: " + subscribersMap);

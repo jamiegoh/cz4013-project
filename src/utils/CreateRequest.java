@@ -7,11 +7,13 @@ public class CreateRequest extends Request{
 
     private String pathname;
 
+    // Constructor for client
     public CreateRequest(String pathname, int requestId) {
         super(RequestType.CREATE, requestId);
         this.pathname = pathname;
     }
 
+    // Constructor for server
     public CreateRequest(DatagramPacket packet, int requestId) {
         super(RequestType.CREATE, requestId);
         String serialStr = new String(packet.getData(), 0, packet.getLength());

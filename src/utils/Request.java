@@ -2,6 +2,7 @@ package utils;
 
 import java.net.DatagramPacket;
 
+// Parent Request class that every other request class extends (common attribute of requestid and type)
 public class Request {
     private final RequestType requestType;
     private int requestId;

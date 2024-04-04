@@ -163,10 +163,13 @@ public class Server {
                             long fileLength = file.length();
                             if (writeOffset < fileLength) {
                                 byte[] temp = new byte[(int) (fileLength - writeOffset)];
+                                // read the rest of the file after the write offset
                                 file.seek(writeOffset);
                                 file.readFully(temp);
                                 file.seek(writeOffset);
+                                // write the data to be inserted
                                 file.write(data.getBytes(StandardCharsets.UTF_8));
+                                // write the rest of the file back
                                 file.write(temp);
                             } else {
                                 file.seek(fileLength);
@@ -333,7 +336,7 @@ public class Server {
         processedRequests.put(requestId, requestPacket);
     }
 
-    // Subscribe
+    // Notify Single Subscriber
     public void notifySingleSubscriber(InetAddress clientAddress, int clientPort, String key) {
         try (RandomAccessFile file = new RandomAccessFile(key, "r")) {
             byte[] readBuf = new byte[(int) file.length()];

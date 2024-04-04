@@ -160,6 +160,7 @@ public class Client {
         close();
     }
 
+    //Check if input arguments are the correct number for the request type
     public static boolean validateInput(RequestType requestType, String input) {
         String[] inputArr = input.split(",");
         switch (requestType) {
