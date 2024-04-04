@@ -279,7 +279,7 @@ public class Client {
 
 
         // Handle Listen case, keep alive
-        if (requestType == RequestType.LISTEN) {
+        if ((requestType == RequestType.LISTEN) && (!received.equals("INTERVAL ENDED"))) {
             boolean running = true;
             if (received.equals("ACK")){
                 socket.setSoTimeout(0);
@@ -359,7 +359,18 @@ public class Client {
     }
 
     public String processResponse(DatagramPacket responsePacket) {
-        Response responseReceived = new Response(responsePacket);
+        Response responseReceived = null;
+        try{
+            responseReceived = new Response(responsePacket);
+        }
+        catch (IllegalArgumentException e){
+            // This is caused by packet loss
+            // ACK might be lost, hence if we receive an invalid response, we check the content
+            String responseStr = new String(responsePacket.getData(), 0, responsePacket.getLength());
+            System.out.println("Invalid response received: " + responseStr);
+            return responseStr;
+        }
+        
         HashMap<String, Object> responseMap = responseReceived.deserialize();
         System.out.println("Server response to Request Type: " + responseMap.get("clientRequestType"));
         System.out.println("Server response to Request Id: " + responseMap.get("requestId"));
