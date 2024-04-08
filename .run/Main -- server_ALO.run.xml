@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Main -- server_ALO" type="Application" factoryName="Application" singleton="false">
+    <option name="MAIN_CLASS_NAME" value="Main" />
+    <module name="cz4013-project" />
+    <option name="PROGRAM_PARAMETERS" value="--server 2222 AT_LEAST_ONCE" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

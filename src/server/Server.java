@@ -39,7 +39,7 @@ public class Server {
     private InvocationSemantics invocationSemantics;
 
     // Simulation for invocation semantics
-    private boolean isSimulation = false;
+    private boolean isSimulation = true;
     
 
 
