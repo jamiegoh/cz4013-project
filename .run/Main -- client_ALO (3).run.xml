@@ -2,7 +2,7 @@
   <configuration default="false" name="Main -- client_ALO (3)" type="Application" factoryName="Application" singleton="false">
     <option name="MAIN_CLASS_NAME" value="Main" />
     <module name="cz4013-project" />
-    <option name="PROGRAM_PARAMETERS" value="--client 192.168.10.148 2222 AT_LEAST_ONCE 5000" />
+    <option name="PROGRAM_PARAMETERS" value="--client 127.0.0.1 2222 AT_LEAST_ONCE 5000" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
